@@ -1,0 +1,107 @@
+---
+title: Deployment
+---
+
+# Deployment
+
+Four supported deployment shapes. The server binary is identical across all of them — only the wrapper and how you mount the data dir differ.
+
+## Native (launchd / systemd)
+
+Best for: solo and small teams on a mac mini / linux box. No container layer, minimal overhead.
+
+**macOS (launchd):**
+
+```bash
+git clone https://github.com/wigtn/wigtoken
+cd wigtoken
+npm ci
+npm run build
+sudo cp launchd/com.wigtn.token.plist /Library/LaunchDaemons/
+sudo launchctl bootstrap system /Library/LaunchDaemons/com.wigtn.token.plist
+```
+
+**Linux (systemd):**
+
+```ini
+# /etc/systemd/system/wigtoken.service
+[Unit]
+Description=wigtoken aggregator
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/wigtoken/dist/index.js
+Environment=PORT=10103
+Environment=STATS_DB_PATH=/var/lib/wigtoken/stats.db
+Restart=on-failure
+RestartSec=2
+User=wigtoken
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now wigtoken
+```
+
+## Docker single container
+
+```bash
+docker run -d --name wigtoken \
+  -p 10103:10103 \
+  -v wigtn-data:/data \
+  -v ~/.claude/projects:/projects:ro \
+  -e CLAUDE_PROJECTS_DIR=/projects \
+  -e ALLOWED_ORIGINS="https://your-site.com" \
+  ghcr.io/wigtn/wigtoken:latest
+```
+
+**Caveat on macOS:** Docker bind mounts sometimes miss fsevents — the server polls as a fallback (`WATCH_POLLING=true`), but if you're on a Mac mini and serious about reliability, prefer the native launchd deployment.
+
+## Docker Compose
+
+For team / org setups with nginx + Prometheus exporter. See [examples/compose](https://github.com/wigtn/wigtoken/tree/main/examples/compose):
+
+```yaml
+services:
+  wigtoken:
+    image: ghcr.io/wigtn/wigtoken:latest
+    environment:
+      MODE: team
+      ALLOWED_ORIGINS: https://example.com
+    volumes:
+      - wigtn-data:/data
+
+  nginx:
+    image: nginx:1.27
+    ports: ["443:443"]
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+
+volumes:
+  wigtn-data:
+```
+
+## Kubernetes
+
+Helm chart published to `oci://ghcr.io/wigtn/charts/wigtoken`:
+
+```bash
+helm install token oci://ghcr.io/wigtn/charts/wigtoken \
+  --set ingress.host=token.example.com \
+  --set persistence.size=5Gi
+```
+
+The chart provisions a PVC for `/data`, mounts the SQLite file, and adds a Prometheus `ServiceMonitor` if `serviceMonitor.enabled=true`.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| `messages: 0` after an hour | Watcher not seeing files | Confirm `CLAUDE_PROJECTS_DIR` resolves to a real `~/.claude/projects/` |
+| `403` on `/api/admin/*` | Bearer token missing or wrong scope | Re-issue via `/setup` or admin API |
+| `429` on widget | Embed origin not whitelisted | Add via `/admin/embeds` |
+| Container restart loop on macOS | SQLite WAL on bind mount | Use a named volume (`-v wigtn-data:/data`), not a bind mount |

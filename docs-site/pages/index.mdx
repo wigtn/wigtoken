@@ -1,0 +1,64 @@
+---
+title: Introduction
+---
+
+# wigtoken
+
+Self-hostable usage aggregator for Claude Code. Tracks token consumption per user, machine, and model — exposes the totals via REST, SSE, Prometheus, and a drop-in React widget.
+
+## What it solves
+
+If you're paying for Claude Code on a Max plan (or any plan) and want to know how much you and your team are burning, you have a few options:
+
+- **Anthropic Console** — shows API spend, not Claude Code session spend.
+- **ccusage** — single-user CLI, no team aggregation, no embedding.
+- **CodeBurn** — pretty, but solo-only, hosted, no real-time embed.
+- **wigtoken** — multi-user, self-hosted, real-time SSE, npm widget, Prometheus.
+
+## Three personas
+
+<table>
+  <thead>
+    <tr><th>Persona</th><th>Setup time</th><th>What you get</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Solo</b></td>
+      <td>~30s (hook) / ~2min (native)</td>
+      <td>Personal dashboard + cost breakdown by model</td>
+    </tr>
+    <tr>
+      <td><b>Team</b> (2–20)</td>
+      <td>~10min</td>
+      <td>Shared dashboard, embed on team site, per-user leaderboard</td>
+    </tr>
+    <tr>
+      <td><b>Org</b> (20+)</td>
+      <td>~30min</td>
+      <td>Multi-host aggregation, Prometheus, Grafana, audit log</td>
+    </tr>
+  </tbody>
+</table>
+
+## Architecture in one diagram
+
+```
+Claude Code session(s)            wigtoken server                 Consumers
+─────────────────────             ──────────────────                 ─────────
+~/.claude/projects/   ──watch──►  chokidar + scanner                 GET /api/usage/totals
+  *.jsonl                          │                                 GET /api/usage/timeseries
+                                   ▼                                 GET /metrics  (Prometheus)
+                                  SQLite (WAL)                       SSE /api/usage/stream
+                                   │                                 SSE /embed/stream
+                                   ▼                                  ↓
+                                 Hono app  ───────────►  operator dashboard (/web)
+                                                          npm @wigtoken/widget
+                                                          embed on wigtn.com etc.
+```
+
+## Get started
+
+- [Quickstart](/quickstart) — pick solo, team, or org.
+- [Deployment](/deploy) — native, Docker, Compose, Kubernetes.
+- [Widget](/widget) — 16 React components, themable, SSE.
+- [API reference](/api) — endpoints + auth scopes.

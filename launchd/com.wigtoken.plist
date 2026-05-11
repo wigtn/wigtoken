@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.wigtoken</string>
+
+    <!--
+      Runs the wigtoken daemon natively on the Mac mini host
+      (instead of inside a Docker container) because macOS Docker bind
+      mounts don't reliably propagate host fsevents OR even fresh
+      readdir entries into the container — new per-user transcript
+      directories were silently invisible to chokidar and to the
+      backup readdir walker. Running natively gives us native fsevents
+      against /path/to/claude/projects, with no mount layer in
+      between.
+
+      Runs as root because each team member's transcripts are written
+      mode 600 (owner-only) by Claude Code and we need to read all of
+      them. The daemon only listens on TCP 10103 behind nginx, so the
+      blast radius is the same as before.
+    -->
+
+    <key>UserName</key>
+    <string>root</string>
+
+    <!-- Edit WorkingDirectory and the npm path to match wherever you
+         cloned the repo (Apple silicon homebrew defaults shown). -->
+    <key>WorkingDirectory</key>
+    <string>/opt/wigtoken</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/npm</string>
+        <string>start</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>NODE_ENV</key>
+        <string>production</string>
+        <key>PORT</key>
+        <string>10103</string>
+        <!-- Edit these three for your deployment. CLAUDE_PROJECTS_DIR
+             should point at either a single user's ~/.claude/projects
+             or a shared root that holds <user>/<machine?>/projects/
+             sub-trees (team mode). STATS_DB_PATH is where SQLite
+             writes; the directory must be writable by the launchd
+             user. ALLOWED_ORIGINS is a comma-separated CORS whitelist
+             — replace example.com with the domain(s) that will fetch
+             from /api/usage/* in the browser. -->
+        <key>CLAUDE_PROJECTS_DIR</key>
+        <string>/path/to/claude/projects</string>
+        <key>STATS_DB_PATH</key>
+        <string>/var/lib/wigtoken/stats.db</string>
+        <key>ALLOWED_ORIGINS</key>
+        <string>https://example.com,https://www.example.com</string>
+        <!-- Native fsevents work fine off the bind mount, so disable
+             chokidar's polling fallback and the secondary readdir walker. -->
+        <key>WATCH_POLLING</key>
+        <string>false</string>
+        <key>SCAN_INTERVAL_MS</key>
+        <string>30000</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/var/lib/wigtoken/stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/var/lib/wigtoken/stderr.log</string>
+</dict>
+</plist>

@@ -1,0 +1,71 @@
+{
+  "name": "wigtoken",
+  "version": "0.1.0",
+  "description": "Self-host aggregator for Claude Code token usage. Watches transcripts and exposes a real-time SSE counter, a Prometheus /metrics endpoint, and an authenticated ingestion API for distributed agents.",
+  "type": "module",
+  "license": "MIT",
+  "author": "wigtn",
+  "homepage": "https://github.com/wigtn/wigtoken#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wigtn/wigtoken.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wigtn/wigtoken/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "claude",
+    "anthropic",
+    "token-usage",
+    "telemetry",
+    "prometheus",
+    "self-hosted",
+    "observability"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "wigtoken": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "public",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsup",
+    "build:web": "cd web && npm ci && npm run build",
+    "build:all": "npm run build && npm run build:web",
+    "prepublishOnly": "npm run build:all",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "better-sqlite3": "^11.7.0",
+    "chokidar": "^4.0.3",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.17.10",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

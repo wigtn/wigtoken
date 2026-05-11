@@ -1,0 +1,74 @@
+name: Deploy docs + demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs-site/**"
+      - "demo/**"
+      - "widget/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Widget first — the demo imports it via file:../widget.
+      - name: Build widget
+        working-directory: widget
+        run: |
+          npm ci
+          npm run build
+
+      # Docs site (Nextra → static export)
+      - name: Build docs
+        working-directory: docs-site
+        env:
+          DOCS_BASE_PATH: /wigtoken
+        run: |
+          npm ci
+          npm run build
+
+      # Demo (Vite → static)
+      - name: Build demo
+        working-directory: demo
+        env:
+          DEMO_BASE_PATH: /wigtoken/demo/
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble pages output
+        run: |
+          mkdir -p docs-site/out/demo
+          cp -R demo/dist/. docs-site/out/demo/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

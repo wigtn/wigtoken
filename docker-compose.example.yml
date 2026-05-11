@@ -1,0 +1,24 @@
+# Example docker-compose for self-hosting wigtoken on a Linux box.
+# Linux native fsevents-equivalent (inotify) + Docker bind mounts work
+# fine here, unlike the documented macOS+Docker corner case that
+# pushed the original deployment to launchd. Pick this if you're
+# running the server on Linux.
+#
+# For team mode, point CLAUDE_PROJECTS_HOST at the directory that
+# holds <user>/<machine>/projects/... trees produced by the agent
+# or a single-host symlink setup.
+
+services:
+  wigtoken:
+    image: ghcr.io/wigtn/wigtoken:latest      # or `build: .`
+    container_name: wigtoken
+    restart: unless-stopped
+    ports:
+      - "10103:10103"
+    environment:
+      MODE: ${MODE:-team}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://example.com}
+      WATCH_POLLING: "false"           # Linux: rely on inotify
+    volumes:
+      - "${CLAUDE_PROJECTS_HOST:?need a transcript root path}:/data/claude:ro"
+      - ./data:/data/db

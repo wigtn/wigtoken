@@ -1,0 +1,56 @@
+{
+  "name": "@wigtoken/agent",
+  "version": "0.1.0",
+  "description": "Cross-platform agent that watches Claude Code transcripts on a developer's machine and pushes new messages to a wigtoken server.",
+  "type": "module",
+  "license": "MIT",
+  "author": "wigtn",
+  "homepage": "https://github.com/wigtn/wigtoken#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wigtn/wigtoken.git",
+    "directory": "agent"
+  },
+  "bugs": {
+    "url": "https://github.com/wigtn/wigtoken/issues"
+  },
+  "keywords": [
+    "wigtoken",
+    "claude-code",
+    "claude",
+    "anthropic",
+    "token-usage",
+    "telemetry",
+    "agent",
+    "cli"
+  ],
+  "bin": {
+    "wigtoken-agent": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "dev": "tsx watch src/cli.ts",
+    "start": "tsx src/cli.ts",
+    "build": "tsup",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

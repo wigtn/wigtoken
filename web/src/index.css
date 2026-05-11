@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark light;
+  }
+
+  body {
+    font-family: theme("fontFamily.sans");
+    @apply text-neutral-100 bg-neutral-950;
+  }
+
+  /* Tabular numbers everywhere a counter shows up */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5 backdrop-blur;
+  }
+
+  .panel-title {
+    @apply text-xs font-medium uppercase tracking-wider text-neutral-400;
+  }
+
+  .stat-value {
+    @apply mt-2 text-3xl font-semibold tabular-nums text-neutral-50;
+  }
+
+  .stat-sub {
+    @apply mt-1 text-xs text-neutral-500 tabular-nums;
+  }
+}

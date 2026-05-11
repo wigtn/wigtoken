@@ -1,0 +1,79 @@
+---
+title: Agent
+---
+
+# @wigtoken/agent
+
+CLI daemon for pushing Claude Code transcripts from a personal laptop to a remote wigtoken server. Use this when:
+
+- You have a flaky network and don't want to lose data.
+- You sometimes use Claude Code offline.
+- You don't want to maintain `~/.claude/settings.json` hooks on every machine.
+
+If your network is reliable, the [hooks approach](/hooks) is simpler.
+
+## Install
+
+```bash
+npm install -g @wigtoken/agent
+```
+
+## Get a token
+
+The wigtoken operator issues you an `ingest`-scope token via `/admin/tokens`. It looks like `wti_…`.
+
+## Run
+
+```bash
+wigtoken-agent run \
+  --server https://token.example.com \
+  --token wti_… \
+  --machine "$(hostname -s)"
+```
+
+The agent:
+
+1. Watches `~/.claude/projects/` with chokidar.
+2. Reads each `.jsonl` from its last-known offset (stored in `~/.config/wigtoken-agent/offsets.json`).
+3. Extracts assistant-message usage rows.
+4. POSTs them to `/api/ingest/messages` in batches.
+5. On network failure, writes batches to a file-backed FIFO queue (`~/.local/share/wigtoken-agent/queue/`) and retries with exponential backoff up to 60s.
+
+## As a service
+
+**macOS (launchctl):**
+
+```bash
+wigtoken-agent install --user
+launchctl load ~/Library/LaunchAgents/com.wigtn.token.agent.plist
+```
+
+**Linux (systemd --user):**
+
+```bash
+wigtoken-agent install --user --systemd
+systemctl --user enable --now wigtoken-agent
+```
+
+## Ping (smoke test)
+
+```bash
+wigtoken-agent ping --server https://token.example.com --token wti_…
+# → 200 OK, user=alice, scope=ingest
+```
+
+## Flags
+
+| Flag | Default | Notes |
+| --- | --- | --- |
+| `--server` | required | https URL of the wigtoken server |
+| `--token` | required | `ingest`-scope bearer token |
+| `--machine` | `hostname -s` | Label shown in dashboards |
+| `--projects-dir` | `~/.claude/projects` | Override for non-default Claude Code install |
+| `--batch-size` | 50 | Messages per POST |
+| `--poll-ms` | 1000 | Fallback poll interval if fsevents drops |
+| `--verbose` | off | Print every batch with byte count |
+
+## Privacy
+
+The agent transmits **only**: model name, token counts (input/cache_creation/cache_read/output), message id, timestamp, your label, your machine name. It does **not** send prompt content, tool calls, or file paths.

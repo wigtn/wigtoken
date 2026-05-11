@@ -1,0 +1,141 @@
+---
+title: API reference
+---
+
+# API reference
+
+All endpoints are JSON-in/JSON-out unless noted. Bearer tokens go in `Authorization: Bearer …`. Embed endpoints accept `?token=` for browser convenience.
+
+## Public read
+
+### GET `/api/usage/totals`
+
+```json
+{
+  "totals": {
+    "input": 18234,
+    "cacheCreation": 4521,
+    "cacheRead": 92341,
+    "output": 7821,
+    "sum": 122917,
+    "messages": 142,
+    "costUsd": 3.71
+  },
+  "timestamp": 1729900000
+}
+```
+
+### GET `/api/usage/timeseries?from=&to=&step=`
+
+`step` in milliseconds. Returns `{ from, to, step, buckets: [{ ts, messages, tokensRaw, tokensWeighted, costUsd }] }`.
+
+### GET `/api/usage/leaderboard?by=user|machine|model_family&limit=20`
+
+Top-N grouped by the chosen dimension.
+
+### GET `/api/usage/users/:name`
+
+Per-user detail with model-family and machine breakdown.
+
+### GET `/api/usage/recent?limit=50`
+
+Latest assistant messages with token counts, model, machine, cost.
+
+### GET `/api/usage/breakdown.csv`
+
+Same data as `/api/usage/breakdown`, served as CSV for spreadsheet import.
+
+### SSE `/api/usage/stream`
+
+Server-Sent Events stream. One event per `updated` notification. Payload mirrors `/api/usage/totals`.
+
+## Embed (origin-restricted)
+
+### GET `/embed/totals?token=we_…`
+
+Same payload as `/api/usage/totals`. Only callable from origins in the `embed-origins` table.
+
+### SSE `/embed/stream?token=we_…`
+
+Same payload as `/api/usage/stream`. Same origin restriction.
+
+## Ingest (token-scoped: `ingest`)
+
+### POST `/api/ingest/messages`
+
+```json
+{
+  "machine": "alice-mbp",
+  "messages": [
+    {
+      "message_id": "msg_…",
+      "model": "claude-sonnet-4-6",
+      "input_tokens": 421,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 14093,
+      "output_tokens": 612,
+      "ts": 1729900000
+    }
+  ]
+}
+```
+
+Deduped by `message_id`. Idempotent — replaying the same payload is a no-op.
+
+## Setup wizard (admin-scoped except status)
+
+### GET `/api/setup/status`
+
+Public. Returns `{ complete, scenario, infra, completedAt, headless }`.
+
+### POST `/api/setup/complete`
+
+`admin` scope. Body: `{ scenario, infra }`.
+
+### POST `/api/setup/reset`
+
+`admin` scope. Clears `setup.*` keys.
+
+## Admin (token-scoped: `admin`)
+
+### Tokens
+
+- `GET /api/admin/tokens` — list (hashes only, no plaintext)
+- `POST /api/admin/tokens` — issue `{ user, scope, label?, expiresAt? }`, returns one-time plaintext `{ token, ...row }`
+- `DELETE /api/admin/tokens/:id` — revoke
+
+### Embed origins
+
+- `GET /api/admin/embed-origins`
+- `POST /api/admin/embed-origins` `{ origin, label? }`
+- `DELETE /api/admin/embed-origins/:id`
+
+### Audit log
+
+`GET /api/admin/audit?since=&limit=` — chronological log of token issuance, revocation, embed changes, setup actions.
+
+## Prometheus
+
+### GET `/metrics`
+
+OpenMetrics format. Labels: `user`, `machine`, `model_family`.
+
+```
+wigtn_tokens_total{user="alice",machine="mbp",model_family="opus",kind="input"} 18234
+wigtn_messages_total{user="alice",machine="mbp",model_family="opus"} 142
+wigtn_cost_usd_total{user="alice",machine="mbp",model_family="opus"} 3.71
+```
+
+## Status codes
+
+| Code | Meaning |
+| --- | --- |
+| `200` | OK |
+| `204` | OK, no content (revokes, deletes) |
+| `400` | Validation error |
+| `401` | Token missing |
+| `403` | Token wrong scope or origin not whitelisted |
+| `404` | Resource not found |
+| `409` | Conflict (e.g. duplicate embed origin) |
+| `429` | Rate limit (default 100 req/min/token) |
+| `500` | Internal — check server log |

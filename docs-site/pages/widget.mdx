@@ -1,0 +1,99 @@
+---
+title: Widget
+---
+
+# @wigtoken/widget
+
+Drop-in React components for embedding wigtoken data on any site. ESM + CJS, ~28kB minified, peer-deps on React 18+.
+
+```bash
+npm install @wigtoken/widget
+```
+
+## Provider
+
+Every widget must be wrapped in a `ProviderConfig` so it knows which server to query and which token to authenticate with.
+
+```tsx
+import { ProviderConfig } from "@wigtoken/widget";
+
+<ProviderConfig
+  server="https://token.example.com"
+  token="we_…"           // embed-scope token, public-safe
+  theme="purple"          // purple | teal | amber | mono | auto
+  density="comfortable"  // compact | comfortable
+  refreshMs={2000}        // SSE fallback poll interval
+>
+  {/* widgets go here */}
+</ProviderConfig>
+```
+
+## Counters
+
+| Component | Props | Notes |
+| --- | --- | --- |
+| `<TokenCounter />` | `mode?: "raw" \| "weighted"` (default raw), `format?: "compact" \| "full"` | Animated count-up |
+| `<CostCounter />` | `format?, currency?: "USD"` | Resolves model pricing server-side |
+| `<WeightedTokenCounter />` | `format?` | Shortcut for `mode="weighted"` |
+| `<MessageCounter />` | `format?` | Counts assistant turns |
+
+## Charts & lists
+
+| Component | Props |
+| --- | --- |
+| `<BurnSparkline />` | `window?: "1h" \| "6h" \| "24h" \| "7d"`, `height?: number` |
+| `<TopUsers />` | `limit?: number`, `by?: "cost" \| "weighted" \| "messages"` |
+| `<TopModels />` | `limit?, by?` |
+| `<TopMachines />` | `limit?, by?` |
+| `<RecentActivity />` | `limit?: number` |
+| `<LiveTicker />` | none — streams as messages arrive |
+| `<ModelLegend />` | none — shows model → colour mapping |
+
+## Status & layout
+
+| Component | Props |
+| --- | --- |
+| `<EmbedPulseDot />` | `size?: "sm" \| "md" \| "lg"` — green when SSE connected |
+| `<MetricCard />` | `label`, `value`, `delta?`, `icon?` |
+| `<StatGrid>{children}</StatGrid>` | Responsive 2/4-col grid wrapper |
+
+## Theming
+
+Set `theme` on the provider, or override individual CSS custom properties:
+
+```css
+:root {
+  --wt-accent: #b794f4;
+  --wt-accent-fg: #1a202c;
+  --wt-bg: #0a0a0a;
+  --wt-fg: #f5f5f5;
+  --wt-muted: #71717a;
+}
+```
+
+All components are namespaced under the `data-wt` attribute so your global CSS won't bleed in unless you want it to.
+
+## SSE & offline
+
+The provider establishes one SSE connection to `/embed/stream` and fans out updates to every consumer. If SSE fails (proxy buffering, captive portal), it falls back to polling at `refreshMs`. Reconnects with exponential backoff up to 60s.
+
+## SSR
+
+Counters render `0` on the server and hydrate to real values once SSE is alive. No layout shift if you reserve space with CSS.
+
+## Example: hero section
+
+```tsx
+<ProviderConfig server={env.SERVER} token={env.TOKEN} theme="purple">
+  <StatGrid>
+    <MetricCard label="Tokens burned (weighted)" value={<WeightedTokenCounter />} />
+    <MetricCard label="Cost so far" value={<CostCounter />} />
+    <MetricCard label="Messages" value={<MessageCounter />} />
+    <MetricCard label="Status" value={<EmbedPulseDot size="md" />} />
+  </StatGrid>
+  <BurnSparkline window="24h" height={80} />
+  <TopUsers limit={5} />
+</ProviderConfig>
+```
+
+See the [demo site](https://wigtn.github.io/wigtoken/demo) for a live gallery.

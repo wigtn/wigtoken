@@ -1,0 +1,137 @@
+name: Release
+
+# Tag-driven release: pushing a tag like v0.1.0 (or v0.1.0-rc.1) triggers
+# this workflow. It builds & publishes the three npm packages and pushes
+# the server Docker image to GHCR. Production deployments (Mac mini
+# launchd) are handled by deploy.yml on main pushes and are unaffected.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (e.g. v0.1.0). For dispatch runs only."
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  npm:
+    name: npm publish (server + widget + agent)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      # Server (root package)
+      - name: Build server (no compiled artefact; npm pack ships src/)
+        run: npm ci
+
+      - name: npm publish server
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+        continue-on-error: true   # private 패키지인 경우 skip OK
+
+      # Widget
+      - name: Build widget
+        working-directory: widget
+        run: |
+          npm ci
+          npm run build
+
+      - name: npm publish widget
+        working-directory: widget
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+        continue-on-error: true
+
+      # Agent
+      - name: Build agent (no compile step; pack src/)
+        working-directory: agent
+        run: npm ci
+
+      - name: npm publish agent
+        working-directory: agent
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+        continue-on-error: true
+
+  docker:
+    name: GHCR docker push (server)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: meta
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "tag_ref=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/wigtoken:latest
+            ghcr.io/${{ github.repository_owner }}/wigtoken:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  github-release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    needs: [npm, docker]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate release notes from CHANGELOG.md
+        id: notes
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          # Pull the body for the matching version block out of CHANGELOG.md
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { p=1; next }
+            p && /^## \[/ { exit }
+            p { print }
+          ' CHANGELOG.md > release-notes.md
+          # Fallback if section missing
+          if [ ! -s release-notes.md ]; then
+            echo "See CHANGELOG.md." > release-notes.md
+          fi
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          generate_release_notes: false
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}

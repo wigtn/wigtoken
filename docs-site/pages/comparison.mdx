@@ -1,0 +1,47 @@
+---
+title: vs ccusage / CodeBurn
+---
+
+# How wigtoken compares
+
+Three popular options for tracking Claude Code usage, and where each lands.
+
+|  | wigtoken | [ccusage](https://github.com/ryoppippi/ccusage) | [CodeBurn](https://codeburn.dev) |
+| --- | --- | --- | --- |
+| **Surface** | Server + dashboard + npm widget | CLI | Hosted web app |
+| **Hosting** | Self-host (any) | Local only | SaaS (their infra) |
+| **Multi-user** | ✅ | ❌ | ❌ (single user) |
+| **Multi-machine** | ✅ (agent or hook) | ❌ | ❌ |
+| **Real-time** | ✅ SSE | n/a (one-shot) | poll-based |
+| **Embed on public site** | ✅ widget npm package | ❌ | ❌ |
+| **Prometheus metrics** | ✅ `/metrics` | ❌ | ❌ |
+| **Grafana dashboard** | ✅ provided | ❌ | ❌ |
+| **Custom widget components** | 16+ | n/a | ❌ |
+| **Cost breakdown** | ✅ per user / model / machine | ✅ per model | ✅ per model |
+| **Audit log** | ✅ | ❌ | ❌ |
+| **Token scopes** | ingest / read / embed / admin | n/a | n/a |
+| **Data ownership** | yours (SQLite file) | yours (local) | theirs |
+| **Setup time** | 2min solo / 10min team | 30s | 30s |
+| **License** | MIT | MIT | proprietary |
+
+## When to use which
+
+- **ccusage** — you're a solo dev, only want a CLI summary, don't care about embedding or history beyond what your local Claude Code retains.
+- **CodeBurn** — you want a pretty hosted UI, are okay with their service holding your data, solo only.
+- **wigtoken** — you want a team or org view, want to embed live counters on your marketing site, want Prometheus integration, or just don't want a third party holding your usage data.
+
+## Migration paths
+
+### From ccusage
+
+ccusage doesn't store data beyond what Claude Code itself keeps. Just point wigtoken at your `~/.claude/projects/` directory — it'll backfill from existing JSONL files on first scan.
+
+### From CodeBurn
+
+CodeBurn's data is held by them; export isn't available at time of writing. Run both side-by-side during transition, then switch when wigtoken has the history you need (usually 2–4 weeks).
+
+## Feature ideas we won't add
+
+- **Anthropic-API-spend tracking.** Anthropic Console already covers this; we focus on Claude Code session spend.
+- **Per-prompt content storage.** Privacy red line — we only store usage counts and metadata.
+- **Slack / Discord notifications out of the box.** Wire them up via Prometheus Alertmanager — that's the right abstraction.

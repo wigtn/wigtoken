@@ -1,0 +1,235 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "Prometheus instance scraping wigtoken's /metrics",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "wigtoken: Claude Code usage broken down by user, machine, and model family. Driven entirely by the /metrics endpoint exposed by the daemon — point Prometheus at host:10103 and import this dashboard.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "tags": ["wigtoken", "claude-code", "usage"],
+  "templating": {
+    "list": [
+      {
+        "name": "user",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(wigtn_messages_total, user)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": false, "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "machine",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(wigtn_messages_total{user=~\"$user\"}, machine)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": false, "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "model_family",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(wigtn_messages_total{user=~\"$user\",machine=~\"$machine\"}, model_family)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": false, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "time": { "from": "now-7d", "to": "now" },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "title": "wigtoken — usage",
+  "uid": "wigtoken",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total tokens (weighted, input-eq)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(wigtn_tokens_weighted_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Messages",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(wigtn_messages_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"})"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Estimated cost (USD)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(wigtn_cost_usd_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"})"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Raw tokens (incl. cache reads)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(wigtn_tokens_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"})"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Burn rate by user (5m, weighted)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (user) (rate(wigtn_tokens_weighted_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"}[5m]))",
+          "legendFormat": "{{user}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "fillOpacity": 25 } }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Cost rate by model family (5m, USD/s)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (model_family) (rate(wigtn_cost_usd_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"}[5m]))",
+          "legendFormat": "{{model_family}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "custom": { "fillOpacity": 25, "stacking": { "mode": "normal" } } }
+      }
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "Cost share by model family",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 0, "y": 12, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (model_family) (wigtn_cost_usd_total{user=~\"$user\",machine=~\"$machine\"})",
+          "legendFormat": "{{model_family}}"
+        }
+      ],
+      "options": { "legend": { "displayMode": "table", "values": ["percent"] } }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "Cost by user (USD)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 8, "y": 12, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (user) (wigtn_cost_usd_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"})",
+          "legendFormat": "{{user}}"
+        }
+      ],
+      "options": { "displayMode": "gradient", "orientation": "horizontal" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "Cost by machine (USD)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 16, "y": 12, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (machine) (wigtn_cost_usd_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"})",
+          "legendFormat": "{{machine}}"
+        }
+      ],
+      "options": { "displayMode": "gradient", "orientation": "horizontal" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Per-user breakdown",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (user, machine, model_family) (wigtn_cost_usd_total{user=~\"$user\",machine=~\"$machine\",model_family=~\"$model_family\"})",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "__name__": true, "job": true, "instance": true }
+          }
+        }
+      ]
+    }
+  ]
+}

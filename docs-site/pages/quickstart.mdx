@@ -1,0 +1,57 @@
+---
+title: Quickstart
+---
+
+# Quickstart
+
+Pick the section that matches your scenario. All three install the same server — they differ only in how you collect transcripts and where you run the dashboard.
+
+## Solo — 2 minutes
+
+```bash
+npm install -g @wigtn/token-server
+wigtoken init   # creates ./data/stats.db
+wigtoken start  # listens on :10103 by default
+```
+
+Open `http://localhost:10103/setup` and run the wizard. Paste the bootstrap admin token printed in the server log.
+
+The server defaults to watching `~/.claude/projects/` on the same machine, so any Claude Code session you run will start showing up immediately.
+
+## Team — 10 minutes
+
+One person (the operator) runs the server somewhere always-on (laptop docked, mac mini, small VPS):
+
+```bash
+docker run -d --name wigtoken \
+  -p 10103:10103 \
+  -v wigtn-data:/data \
+  -e MODE=team \
+  -e ALLOWED_ORIGINS="https://your-team-site.com" \
+  ghcr.io/wigtn/wigtoken:latest
+```
+
+Team members install **one** of:
+
+1. **Claude Code hooks** — paste a `PostToolUse` block into `~/.claude/settings.json`. Setup time: 30 seconds. See [hooks](/hooks).
+2. **Agent CLI** — `npm install -g @wigtoken/agent`, then `wigtoken-agent run --server https://your-server --token wts_…`. More resilient (offline queue + retries). See [agent](/agent).
+
+The operator gives each member an `ingest`-scope token from `/admin/tokens`.
+
+## Org — 30 minutes
+
+Same as team, plus:
+
+- Run the server behind nginx/cloudflared with TLS.
+- Wire Prometheus to `/metrics` and import the [Grafana dashboard](https://github.com/wigtn/wigtoken/blob/main/grafana/dashboard.json).
+- Issue tokens via the admin API (`POST /api/admin/tokens`) from your provisioning scripts so the dashboard isn't a manual step.
+
+See [deployment → kubernetes](/deploy#kubernetes) for the Helm chart.
+
+## Verify it works
+
+```bash
+curl https://your-wigtoken/api/usage/totals | jq .
+```
+
+You should see `messages > 0` after your first Claude Code turn. If not, check the [troubleshooting section in deploy.md](/deploy#troubleshooting).

@@ -1,0 +1,104 @@
+---
+title: Self-hosting
+---
+
+# Self-hosting
+
+This page covers the design questions you face when running wigtoken yourself, especially if you want to put the widget on a public website.
+
+## DNS & TLS
+
+The server speaks plain HTTP on `:10103`. Put a reverse proxy in front of it for TLS — nginx, Caddy, Cloudflare Tunnel, traefik all work. Example nginx block:
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name token.example.com;
+  ssl_certificate /etc/letsencrypt/live/token.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/token.example.com/privkey.pem;
+
+  location / {
+    proxy_pass http://127.0.0.1:10103;
+    proxy_http_version 1.1;
+    proxy_buffering off;          # SSE
+    proxy_read_timeout 24h;       # SSE
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+The `proxy_buffering off` line matters — without it the SSE endpoints `/api/usage/stream` and `/embed/stream` will buffer until the browser closes the connection.
+
+## Token scopes
+
+| Scope | What it can do | Who gets one |
+| --- | --- | --- |
+| `ingest` | POST `/api/ingest/messages` | Each Claude Code user / machine |
+| `read` | GET `/api/usage/*`, SSE | Internal tooling, CI scripts |
+| `embed` | GET `/embed/*` from whitelisted origins only | The widget on public sites |
+| `admin` | All of the above + token & embed management | The operator |
+
+Rotate tokens via `POST /api/admin/tokens` (issue) and `DELETE /api/admin/tokens/:id` (revoke). The audit log captures both.
+
+## Embedding on a public site
+
+Two-layer defense by design:
+
+1. **CORS allowlist** — only origins in `embed-origins` table can fetch from `/embed/*`.
+2. **Embed-scope token** — query string `?token=we_…` on the widget's `ProviderConfig`.
+
+Both must match. Without both, the widget refuses to render.
+
+```tsx
+import { ProviderConfig, TokenCounter, CostCounter } from "@wigtoken/widget";
+
+export function HeroBanner() {
+  return (
+    <ProviderConfig
+      server="https://token.example.com"
+      token={process.env.NEXT_PUBLIC_WIGTN_EMBED_TOKEN!}
+    >
+      <h1>
+        Our team has burned{" "}
+        <TokenCounter mode="weighted" /> input-equivalent tokens.
+      </h1>
+      <CostCounter />
+    </ProviderConfig>
+  );
+}
+```
+
+The embed token is **public** by definition (it ships in your bundle). That's safe because it can only be used from your whitelisted origins.
+
+## Headless mode
+
+Set `HEADLESS=true` to disable the operator dashboard SPA entirely. The server still ingests and serves embed / Prometheus endpoints. Useful when you only want the metrics layer and prefer to manage tokens via CLI or scripts.
+
+```bash
+HEADLESS=true npm start
+```
+
+In headless mode `GET /` returns a plain-text banner instead of the SPA.
+
+## Backups
+
+The SQLite database is the only persistent state. Snapshot it with:
+
+```bash
+sqlite3 /var/lib/wigtoken/stats.db ".backup '/backups/stats-$(date +%F).db'"
+```
+
+WAL is on by default — the `.backup` command is consistent across concurrent writes. Don't just `cp` the file; you may catch it mid-checkpoint.
+
+## Upgrading
+
+The schema is migrated automatically on startup. Before upgrading across major versions:
+
+1. Stop the server.
+2. Back up `stats.db`.
+3. Pull the new image / binary.
+4. Start. Migrations run at boot; failures abort startup with a clear error.
+
+CHANGELOG breaking changes are flagged with `BREAKING:` lines.
