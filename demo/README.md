@@ -1,6 +1,6 @@
 # wigtoken widget showcase
 
-Vite + React app that renders every component from `@wigtoken/widget`
+Vite + React app that renders every component from `@wigtoken-temp/widget`
 against a configurable server. Useful for screenshots, theme tuning,
 and as a "buy" page link from the docs site.
 

@@ -1,4 +1,4 @@
-# @wigtoken/widget
+# @wigtoken-temp/widget
 
 React components that embed live token-usage counters from a [wigtoken](https://github.com/wigtn/wigtoken) server on any page.
 
@@ -8,7 +8,7 @@ import {
   TokenCounter,
   CostCounter,
   WeightedTokenCounter,
-} from "@wigtoken/widget";
+} from "@wigtoken-temp/widget";
 
 export default function HeroSection() {
   return (
@@ -27,7 +27,7 @@ The counter animates up in real time as new messages stream in from any agent / 
 ## Install
 
 ```bash
-npm install @wigtoken/widget
+npm install @wigtoken-temp/widget
 # peer deps:
 npm install react react-dom
 ```
@@ -103,7 +103,7 @@ Convenience wrapper for `<TokenCounter metric="weighted" />`.
 Hook for users who want raw access to the live totals (build your own visualisation):
 
 ```tsx
-import { useTotals } from "@wigtoken/widget";
+import { useTotals } from "@wigtoken-temp/widget";
 
 function Custom() {
   const t = useTotals();

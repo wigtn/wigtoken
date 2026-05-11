@@ -11,8 +11,8 @@ Thanks for digging into wigtoken. Here's the short version.
   data/          # SQLite + WAL files (generated; gitignored)
   Dockerfile
   docker-compose.example.yml
-agent/           # @wigtoken/agent  (cross-platform CLI)
-widget/          # @wigtoken/widget (React components)
+agent/           # @wigtoken-temp/agent  (cross-platform CLI)
+widget/          # @wigtoken-temp/widget (React components)
 web/             # operator dashboard SPA (Vite + React + Tailwind)
 docs/            # PRD.md, HOOKS.md, …
 grafana/         # legacy Grafana dashboard template
@@ -73,7 +73,7 @@ CI runs all four.
 
 ## Releasing
 
-Push a tag like `v0.1.1` on `main` and the **Release** workflow handles npm publishes (`@wigtoken/widget`, `@wigtoken/agent`, root server package) + a GHCR Docker image + a GitHub release. The release notes are scraped from the matching block in `CHANGELOG.md`.
+Push a tag like `v0.1.1` on `main` and the **Release** workflow handles npm publishes (`@wigtoken-temp/widget`, `@wigtoken-temp/agent`, root server package) + a GHCR Docker image + a GitHub release. The release notes are scraped from the matching block in `CHANGELOG.md`.
 
 Required repository secrets:
 

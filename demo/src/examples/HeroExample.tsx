@@ -6,7 +6,7 @@ import {
   MessageCounter,
   EmbedPulseDot,
   BurnSparkline,
-} from "@wigtoken/widget";
+} from "@wigtoken-temp/widget";
 
 export default function HeroExample() {
   return (

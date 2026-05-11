@@ -1,5 +1,5 @@
 {
-  "name": "@wigtoken/widget",
+  "name": "@wigtoken-temp/widget",
   "version": "0.1.0",
   "description": "React components that embed live token-usage counters from a wigtoken server on any page. <TokenCounter />, <CostCounter />, <WeightedTokenCounter /> with auto SSE updates.",
   "license": "MIT",

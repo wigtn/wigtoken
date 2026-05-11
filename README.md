@@ -58,7 +58,7 @@ You have multiple developers on multiple machines and want one consolidated view
 3. **Each developer runs the agent** on their machine:
 
    ```bash
-   npx @wigtoken/agent \
+   npx @wigtoken-temp/agent \
      --server https://your-server \
      --token wts_alice_token \
      --machine $(hostname)
@@ -102,7 +102,7 @@ Both end up calling `POST /api/ingest/messages` with an ingest-scope bearer toke
 
 | | Agent | Hook |
 |---|---|---|
-| Footprint | LaunchAgent / systemd unit running `@wigtoken/agent` | one block in `~/.claude/settings.json` |
+| Footprint | LaunchAgent / systemd unit running `@wigtoken-temp/agent` | one block in `~/.claude/settings.json` |
 | Offline retry | ✅ disk queue + backoff | ❌ one-shot POST per turn |
 | Setup | npm install + token + plist | settings.json edit |
 | Best for | shared/public networks, critical usage | trusted networks, quick demos |

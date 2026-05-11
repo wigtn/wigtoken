@@ -15,7 +15,7 @@ import {
   ModelLegend,
   MetricCard,
   StatGrid,
-} from "@wigtoken/widget";
+} from "@wigtoken-temp/widget";
 import Section from "./components/Section.tsx";
 import HeroExample from "./examples/HeroExample.tsx";
 import ConfigBar, { type Config } from "./components/ConfigBar.tsx";
@@ -53,7 +53,7 @@ export default function App() {
             <a className="hover:text-neutral-200" href="/wigtoken/">
               Docs
             </a>
-            <a className="hover:text-neutral-200" href="https://www.npmjs.com/package/@wigtoken/widget">
+            <a className="hover:text-neutral-200" href="https://www.npmjs.com/package/@wigtoken-temp/widget">
               npm
             </a>
           </nav>

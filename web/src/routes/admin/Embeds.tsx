@@ -43,7 +43,7 @@ export default function AdminEmbeds() {
         <p className="mt-1 text-sm text-neutral-400">
           Domains allowed to consume the public read / SSE endpoints when an
           embed-scope token is presented. Used by{" "}
-          <code className="text-neutral-300">@wigtoken/widget</code>.
+          <code className="text-neutral-300">@wigtoken-temp/widget</code>.
         </p>
       </header>
 
@@ -148,7 +148,7 @@ export default function AdminEmbeds() {
           React app:
         </p>
         <pre className="bg-neutral-950 border border-neutral-800 rounded p-3 text-xs overflow-auto">
-{`import { TokenCounter, ProviderConfig } from '@wigtoken/widget';
+{`import { TokenCounter, ProviderConfig } from '@wigtoken-temp/widget';
 
 <ProviderConfig server="${typeof window !== "undefined" ? window.location.origin : "https://your-server"}" token="emb_…">
   <TokenCounter style="hero" />

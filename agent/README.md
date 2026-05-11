@@ -1,4 +1,4 @@
-# @wigtoken/agent
+# @wigtoken-temp/agent
 
 Cross-platform CLI agent that watches Claude Code transcripts on a developer's machine and pushes new messages to a `wigtoken` server.
 
@@ -8,10 +8,10 @@ Use this when you want team-level usage aggregation across multiple machines (la
 
 ```bash
 # Run on demand
-npx @wigtoken/agent --server https://your-server --token wts_…
+npx @wigtoken-temp/agent --server https://your-server --token wts_…
 
 # Or install globally
-npm i -g @wigtoken/agent
+npm i -g @wigtoken-temp/agent
 wigtoken-agent --server https://your-server --token wts_…
 ```
 
@@ -62,7 +62,7 @@ The agent will:
   <key>Label</key><string>com.example.wigtoken-agent</string>
   <key>ProgramArguments</key><array>
     <string>/opt/homebrew/bin/npx</string>
-    <string>@wigtoken/agent</string>
+    <string>@wigtoken-temp/agent</string>
     <string>--server</string><string>https://your-server</string>
   </array>
   <key>EnvironmentVariables</key><dict>
@@ -84,7 +84,7 @@ After=network.target
 [Service]
 Environment=WIGTOKEN_TOKEN_SERVER=https://your-server
 Environment=WIGTOKEN_TOKEN=wts_…
-ExecStart=/usr/bin/npx @wigtoken/agent
+ExecStart=/usr/bin/npx @wigtoken-temp/agent
 Restart=always
 
 [Install]

@@ -1,10 +1,10 @@
 # Claude Code hooks → wigtoken
 
-> Lightweight alternative to the standalone `@wigtoken/agent`. One block in `~/.claude/settings.json` and every Claude Code session you run on that machine streams its messages into your wigtoken server.
+> Lightweight alternative to the standalone `@wigtoken-temp/agent`. One block in `~/.claude/settings.json` and every Claude Code session you run on that machine streams its messages into your wigtoken server.
 
 ## When to use this vs the agent
 
-| | Hook | Agent (`@wigtoken/agent`) |
+| | Hook | Agent (`@wigtoken-temp/agent`) |
 |---|---|---|
 | Background process | none | Node daemon (LaunchAgent / systemd) |
 | Catches sessions when Claude Code is closed | n/a (nothing to catch) | reads JSONL on next restart |

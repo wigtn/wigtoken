@@ -19,8 +19,8 @@ First public release.
   - `GET|POST|DELETE /api/admin/{tokens,embed-origins,audit}`.
 - **Embed-scope API**: `/embed/totals`, `/embed/stream` — two-layer security with CORS origin allow-list (`embed_origins` table, managed via admin UI) + bearer token.
 - **Operator dashboard** (`web/`) — Vite + React 19 + Tailwind, served as static assets from `./public`. Routes: Overview, Users, Models, Machines, Timeseries, Sessions, plus Admin (Tokens, Embeds, Audit). Sidebar TokenGate for setting the bearer token.
-- **Agent** (`agent/`) — cross-platform Node CLI (`@wigtoken/agent`) that watches `~/.claude/projects` on developer machines, batches assistant messages, and pushes via `/api/ingest/messages` with an on-disk offline queue.
-- **Widget package** (`widget/`) — publishable React library (`@wigtoken/widget`) with `<ProviderConfig>`, `<TokenCounter>`, `<CostCounter>`, `<WeightedTokenCounter>` and a `useTotals()` hook. Tree-shakeable, ESM + CJS dual, ~7 KB gzipped.
+- **Agent** (`agent/`) — cross-platform Node CLI (`@wigtoken-temp/agent`) that watches `~/.claude/projects` on developer machines, batches assistant messages, and pushes via `/api/ingest/messages` with an on-disk offline queue.
+- **Widget package** (`widget/`) — publishable React library (`@wigtoken-temp/widget`) with `<ProviderConfig>`, `<TokenCounter>`, `<CostCounter>`, `<WeightedTokenCounter>` and a `useTotals()` hook. Tree-shakeable, ESM + CJS dual, ~7 KB gzipped.
 - **Claude Code hook** alternative to the agent — documented in `docs/HOOKS.md`. One block in `~/.claude/settings.json` pushes every turn via `curl` + `jq`.
 - **Multi-tenant scripts** (`scripts/`) — `setup-data-root.sh`, `setup-user-symlinks.sh` for single-host deployments where multiple OS users share one server.
 - **Grafana dashboard** template (`grafana/dashboard.json`) — kept for operators who already run Prometheus + Grafana and prefer those over the bundled web UI.
