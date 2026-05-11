@@ -1,9 +1,18 @@
 {
   "name": "@wigtoken-temp/widget",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "React components that embed live token-usage counters from a wigtoken server on any page. <TokenCounter />, <CostCounter />, <WeightedTokenCounter /> with auto SSE updates.",
   "license": "MIT",
   "type": "module",
+  "homepage": "https://github.com/wigtn/wigtoken#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wigtn/wigtoken.git",
+    "directory": "widget"
+  },
+  "bugs": {
+    "url": "https://github.com/wigtn/wigtoken/issues"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
