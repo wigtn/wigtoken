@@ -27,7 +27,7 @@ export default function HeroExample() {
           />
           <MetricCard label="Cost" value={<CostCounter />} />
           <MetricCard label="Messages" value={<MessageCounter />} />
-          <MetricCard label="Status" value={<EmbedPulseDot size="md" />} />
+          <MetricCard label="Status" value={<EmbedPulseDot size={10} withLabel />} />
         </StatGrid>
       </div>
 
@@ -35,7 +35,7 @@ export default function HeroExample() {
         <div className="mb-2 text-xs uppercase tracking-wider text-neutral-500">
           Burn (24h)
         </div>
-        <BurnSparkline window="24h" height={72} />
+        <BurnSparkline range="24h" />
       </div>
     </div>
   );

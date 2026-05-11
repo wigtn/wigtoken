@@ -66,8 +66,6 @@ export default function App() {
         <ProviderConfig
           server={cfg.server}
           token={cfg.token}
-          theme={cfg.theme}
-          density={cfg.density}
         >
           <Section
             id="hero"
@@ -79,7 +77,7 @@ export default function App() {
   <MetricCard label="Messages" value={<MessageCounter />} />
   <MetricCard label="Status" value={<EmbedPulseDot />} />
 </StatGrid>
-<BurnSparkline window="24h" />`}
+<BurnSparkline range="24h" />`}
           >
             <HeroExample />
           </Section>
@@ -107,15 +105,15 @@ export default function App() {
           <Section
             id="sparkline"
             title="Burn sparkline"
-            blurb="SVG-only, no chart dependency. Configurable window."
-            code={`<BurnSparkline window="1h" />
-<BurnSparkline window="24h" />
-<BurnSparkline window="7d" />`}
+            blurb="SVG-only, no chart dependency. Configurable range."
+            code={`<BurnSparkline range="1h" />
+<BurnSparkline range="24h" />
+<BurnSparkline range="7d" />`}
           >
             <div className="grid gap-4 md:grid-cols-3">
-              <BurnSparkline window="1h" height={64} />
-              <BurnSparkline window="24h" height={64} />
-              <BurnSparkline window="7d" height={64} />
+              <BurnSparkline range="1h" />
+              <BurnSparkline range="24h" />
+              <BurnSparkline range="7d" />
             </div>
           </Section>
 
@@ -151,16 +149,16 @@ export default function App() {
             id="status"
             title="Status & legend"
             blurb="Quick visual cues for SSE health and model-family colour mapping."
-            code={`<EmbedPulseDot size="sm" />
-<EmbedPulseDot size="md" />
-<EmbedPulseDot size="lg" />
+            code={`<EmbedPulseDot size={6} />
+<EmbedPulseDot size={10} />
+<EmbedPulseDot size={14} withLabel />
 <ModelLegend />`}
           >
             <div className="space-y-4">
               <div className="flex items-center gap-6">
-                <EmbedPulseDot size="sm" />
-                <EmbedPulseDot size="md" />
-                <EmbedPulseDot size="lg" />
+                <EmbedPulseDot size={6} />
+                <EmbedPulseDot size={10} />
+                <EmbedPulseDot size={14} withLabel />
               </div>
               <ModelLegend />
             </div>
@@ -176,9 +174,9 @@ export default function App() {
 </StatGrid>`}
           >
             <StatGrid>
-              <MetricCard label="Today" value="12,418" delta="+8%" />
-              <MetricCard label="This week" value="68,201" delta="+22%" />
-              <MetricCard label="This month" value="284,910" delta="+11%" />
+              <MetricCard label="Today" value="12,418" sub="+8%" />
+              <MetricCard label="This week" value="68,201" sub="+22%" />
+              <MetricCard label="This month" value="284,910" sub="+11%" />
               <MetricCard label="All time" value="1.2M" />
             </StatGrid>
           </Section>

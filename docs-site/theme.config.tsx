@@ -14,9 +14,6 @@ const config: DocsThemeConfig = {
   footer: {
     content: "wigtoken — self-hostable Claude Code usage aggregator",
   },
-  useNextSeoProps() {
-    return { titleTemplate: "%s – wigtoken" };
-  },
   head: (
     <>
       <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,8 +24,10 @@ const config: DocsThemeConfig = {
       />
     </>
   ),
-  primaryHue: 270,
-  primarySaturation: 70,
+  color: {
+    hue: 270,
+    saturation: 70,
+  },
 };
 
 export default config;
