@@ -62,7 +62,7 @@ docker run -d --name wigtoken \
 
 ## Docker Compose
 
-For team / org setups with nginx + Prometheus exporter. See [examples/compose](https://github.com/wigtn/wigtoken/tree/main/examples/compose):
+For team / org setups with TLS termination via nginx. The built-in operator dashboard and widget endpoints are included — Prometheus/Grafana are optional, only useful if you already run that stack. See [examples/compose](https://github.com/wigtn/wigtoken/tree/main/examples/compose):
 
 ```yaml
 services:

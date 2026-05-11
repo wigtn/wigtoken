@@ -4,7 +4,7 @@ title: Introduction
 
 # wigtoken
 
-Self-hostable usage aggregator for Claude Code. Tracks token consumption per user, machine, and model — exposes the totals via REST, SSE, Prometheus, and a drop-in React widget.
+Self-hostable usage aggregator for Claude Code. Tracks token consumption per user, machine, and model — comes with a built-in operator dashboard, a drop-in React widget for embedding live counters anywhere, and REST + SSE APIs. Prometheus integration is optional, not required.
 
 ## What it solves
 
@@ -13,7 +13,7 @@ If you're paying for Claude Code on a Max plan (or any plan) and want to know ho
 - **Anthropic Console** — shows API spend, not Claude Code session spend.
 - **ccusage** — single-user CLI, no team aggregation, no embedding.
 - **CodeBurn** — pretty, but solo-only, hosted, no real-time embed.
-- **wigtoken** — multi-user, self-hosted, real-time SSE, npm widget, Prometheus.
+- **wigtoken** — multi-user, self-hosted, real-time SSE, built-in dashboard + npm widget, optional Prometheus.
 
 ## Three personas
 
@@ -35,7 +35,7 @@ If you're paying for Claude Code on a Max plan (or any plan) and want to know ho
     <tr>
       <td><b>Org</b> (20+)</td>
       <td>~30min</td>
-      <td>Multi-host aggregation, Prometheus, Grafana, audit log</td>
+      <td>Multi-host aggregation, audit log, optional Prometheus / Grafana</td>
     </tr>
   </tbody>
 </table>

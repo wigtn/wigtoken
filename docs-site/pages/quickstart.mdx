@@ -43,7 +43,7 @@ The operator gives each member an `ingest`-scope token from `/admin/tokens`.
 Same as team, plus:
 
 - Run the server behind nginx/cloudflared with TLS.
-- Wire Prometheus to `/metrics` and import the [Grafana dashboard](https://github.com/wigtn/wigtoken/blob/main/grafana/dashboard.json).
+- *(Optional)* Wire Prometheus to `/metrics` and import the [Grafana dashboard](https://github.com/wigtn/wigtoken/blob/main/grafana/dashboard.json) — only if you already run that stack. wigtoken's own dashboard at `/` is the primary visualisation surface.
 - Issue tokens via the admin API (`POST /api/admin/tokens`) from your provisioning scripts so the dashboard isn't a manual step.
 
 See [deployment → kubernetes](/deploy#kubernetes) for the Helm chart.

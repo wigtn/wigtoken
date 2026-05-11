@@ -50,7 +50,7 @@ const INFRA: Record<Infra, { title: string; blurb: string }> = {
   },
   "docker-compose": {
     title: "Docker Compose",
-    blurb: "Server + nginx + (optional) Prometheus exporter in one stack.",
+    blurb: "Server + nginx in one stack. Built-in dashboard included.",
   },
   kubernetes: {
     title: "Kubernetes",
@@ -58,7 +58,7 @@ const INFRA: Record<Infra, { title: string; blurb: string }> = {
   },
   headless: {
     title: "Headless (ingest only)",
-    blurb: "No dashboard. Just ingest + embed endpoints + Prometheus metrics.",
+    blurb: "No dashboard SPA. Ingest + embed widget endpoints only.",
   },
 };
 
