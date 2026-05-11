@@ -28,40 +28,55 @@ const DEFAULT_CONFIG: Config = {
   density: "comfortable",
 };
 
+/**
+ * When the URL has ?focus=<section-id>, we render in "embed mode":
+ * no header, no ConfigBar, no footer, no Section chrome — just the
+ * matching component group. Used by the docs site to inline live
+ * previews per section without iframing the whole showcase.
+ */
+function useFocus(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("focus");
+}
+
 export default function App() {
   const [cfg, setCfg] = useState<Config>(DEFAULT_CONFIG);
+  const focus = useFocus();
+  const embed = focus !== null;
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-neutral-900 px-8 py-5">
-        <div className="mx-auto max-w-6xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-7 w-7 rounded-md bg-gradient-to-br from-purple-500 to-fuchsia-400" />
-            <div>
-              <div className="text-sm font-semibold">
-                wigtoken <span className="text-neutral-500">widget showcase</span>
-              </div>
-              <div className="text-[11px] uppercase tracking-wider text-neutral-500">
-                live components, 5 themes, 16+ widgets
+    <div className={embed ? "p-4" : "min-h-screen"}>
+      {!embed && (
+        <header className="border-b border-neutral-900 px-8 py-5">
+          <div className="mx-auto max-w-6xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-md bg-gradient-to-br from-purple-500 to-fuchsia-400" />
+              <div>
+                <div className="text-sm font-semibold">
+                  wigtoken <span className="text-neutral-500">widget showcase</span>
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-neutral-500">
+                  live components, 5 themes, 16+ widgets
+                </div>
               </div>
             </div>
+            <nav className="flex items-center gap-4 text-xs text-neutral-400">
+              <a className="hover:text-neutral-200" href="https://github.com/wigtn/wigtoken">
+                GitHub
+              </a>
+              <a className="hover:text-neutral-200" href="/wigtoken/">
+                Docs
+              </a>
+              <a className="hover:text-neutral-200" href="https://www.npmjs.com/package/@wigtoken-temp/widget">
+                npm
+              </a>
+            </nav>
           </div>
-          <nav className="flex items-center gap-4 text-xs text-neutral-400">
-            <a className="hover:text-neutral-200" href="https://github.com/wigtn/wigtoken">
-              GitHub
-            </a>
-            <a className="hover:text-neutral-200" href="/wigtoken/">
-              Docs
-            </a>
-            <a className="hover:text-neutral-200" href="https://www.npmjs.com/package/@wigtoken-temp/widget">
-              npm
-            </a>
-          </nav>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <div className="mx-auto max-w-6xl px-8 py-8">
-        <ConfigBar config={cfg} onChange={setCfg} />
+      <div className={embed ? "" : "mx-auto max-w-6xl px-8 py-8"}>
+        {!embed && <ConfigBar config={cfg} onChange={setCfg} />}
 
         <ProviderConfig
           server={cfg.server}
@@ -182,9 +197,11 @@ export default function App() {
           </Section>
         </ProviderConfig>
 
-        <footer className="mt-16 border-t border-neutral-900 pt-6 text-xs text-neutral-500">
-          MIT licensed — fork it, theme it, ship it.
-        </footer>
+        {!embed && (
+          <footer className="mt-16 border-t border-neutral-900 pt-6 text-xs text-neutral-500">
+            MIT licensed — fork it, theme it, ship it.
+          </footer>
+        )}
       </div>
     </div>
   );

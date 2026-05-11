@@ -8,8 +8,31 @@ interface Props {
   children: ReactNode;
 }
 
+/**
+ * Returns the value of ?focus=<id> from the current URL, or null if
+ * not set. Lets the docs site embed a single section via iframe with
+ * no chrome.
+ */
+function useFocus(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("focus");
+}
+
 export default function Section({ id, title, blurb, code, children }: Props) {
   const [showCode, setShowCode] = useState(false);
+  const focus = useFocus();
+
+  // Embed mode: hide everything except matching section, and strip
+  // the title/blurb/code chrome so the docs iframe is tight.
+  if (focus !== null) {
+    if (focus !== id) return null;
+    return (
+      <section id={id} className="rounded-xl border border-neutral-900 bg-neutral-950/60 p-6">
+        {children}
+      </section>
+    );
+  }
+
   return (
     <section id={id} className="mt-10 first:mt-6">
       <div className="mb-3 flex items-baseline justify-between gap-4">

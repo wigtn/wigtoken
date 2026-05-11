@@ -2,9 +2,13 @@
 title: Widget
 ---
 
+import Preview from "../components/Preview.tsx";
+
 # @wigtoken-temp/widget
 
-Drop-in React components for embedding wigtoken data on any site. ESM + CJS, ~28kB minified, peer-deps on React 18+.
+Drop-in React components for embedding wigtoken data on any site. ESM + CJS, ~28 KB minified, peer-deps on React 18+.
+
+> 🎨 **Live gallery**: every component below is rendered live from the [demo site](/demo/) — try it interactively, then come back here for the prop reference.
 
 ```bash
 npm install @wigtoken-temp/widget
@@ -19,47 +23,164 @@ import { ProviderConfig } from "@wigtoken-temp/widget";
 
 <ProviderConfig
   server="https://token.example.com"
-  token="we_…"           // embed-scope token, public-safe
-  theme="purple"          // purple | teal | amber | mono | auto
-  density="comfortable"  // compact | comfortable
-  refreshMs={2000}        // SSE fallback poll interval
+  token="we_…"                // embed-scope token, public-safe
+  poll={false}                 // SSE on by default; true → fallback poll
+  pollIntervalMs={2000}        // used when poll=true OR SSE drops
 >
   {/* widgets go here */}
 </ProviderConfig>
 ```
 
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `server` | `string` | required | Base URL of your wigtoken server |
+| `token` | `string` | required | Embed-scope bearer token |
+| `poll` | `boolean` | `false` | When true, polls instead of opening SSE |
+| `pollIntervalMs` | `number` | `2000` | Polling interval (fallback or forced) |
+
+---
+
 ## Counters
 
-| Component | Props | Notes |
-| --- | --- | --- |
-| `<TokenCounter />` | `mode?: "raw" \| "weighted"` (default raw), `format?: "compact" \| "full"` | Animated count-up |
-| `<CostCounter />` | `format?, currency?: "USD"` | Resolves model pricing server-side |
-| `<WeightedTokenCounter />` | `format?` | Shortcut for `mode="weighted"` |
-| `<MessageCounter />` | `format?` | Counts assistant turns |
+Animated count-up. Updates on every SSE event from the server.
 
-## Charts & lists
+<Preview section="counters" height={220} />
+
+```tsx
+<TokenCounter />
+<TokenCounter mode="weighted" />
+<CostCounter />
+<MessageCounter />
+```
 
 | Component | Props |
 | --- | --- |
-| `<BurnSparkline />` | `window?: "1h" \| "6h" \| "24h" \| "7d"`, `height?: number` |
+| `<TokenCounter />` | `mode?: "raw" \| "weighted"`, `format?: FormatMode`, `size?: Size`, `theme?: Theme` |
+| `<CostCounter />` | `format?: FormatMode`, `currency?: string`, `size?, theme?` |
+| `<WeightedTokenCounter />` | `format?, size?, theme?` — shortcut for `mode="weighted"` |
+| `<MessageCounter />` | `format?, size?, theme?` |
+
+`FormatMode = "compact" | "full"`, `Size = "sm" | "md" | "lg"`, `Theme = "purple" | "teal" | "amber" | "mono" | "auto"`.
+
+---
+
+## Burn sparkline
+
+Inline SVG line chart of recent burn — no chart library dependency.
+
+<Preview section="sparkline" height={180} />
+
+```tsx
+<BurnSparkline range="1h" />
+<BurnSparkline range="24h" />
+<BurnSparkline range="7d" />
+```
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `range` | `"1h" \| "24h" \| "7d" \| "30d"` | `"24h"` |
+| `metric` | `"tokensWeighted" \| "tokensRaw" \| "costUsd" \| "messages"` | `"tokensWeighted"` |
+| `size`, `theme`, `width` | — | — |
+
+---
+
+## Leaderboards
+
+Top-N grouped by user, model family, or machine.
+
+<Preview section="rankings" height={300} />
+
+```tsx
+<TopUsers limit={5} />
+<TopModels limit={5} />
+<TopMachines limit={5} />
+```
+
+| Component | Props |
+| --- | --- |
 | `<TopUsers />` | `limit?: number`, `by?: "cost" \| "weighted" \| "messages"` |
 | `<TopModels />` | `limit?, by?` |
 | `<TopMachines />` | `limit?, by?` |
-| `<RecentActivity />` | `limit?: number` |
-| `<LiveTicker />` | none — streams as messages arrive |
-| `<ModelLegend />` | none — shows model → colour mapping |
 
-## Status & layout
+---
+
+## Activity
+
+<Preview section="activity" height={280} />
+
+```tsx
+<RecentActivity limit={6} />
+<LiveTicker />
+```
+
+`RecentActivity` polls (or reads from SSE if the provider is in SSE mode). `LiveTicker` always uses SSE — new messages animate in as they arrive.
+
+---
+
+## Status & legend
+
+<Preview section="status" height={200} />
+
+```tsx
+<EmbedPulseDot size={6} />
+<EmbedPulseDot size={10} />
+<EmbedPulseDot size={14} withLabel />
+<ModelLegend />
+```
 
 | Component | Props |
 | --- | --- |
-| `<EmbedPulseDot />` | `size?: "sm" \| "md" \| "lg"` — green when SSE connected |
-| `<MetricCard />` | `label`, `value`, `delta?`, `icon?` |
-| `<StatGrid>{children}</StatGrid>` | Responsive 2/4-col grid wrapper |
+| `<EmbedPulseDot />` | `size?: number` (pixels), `withLabel?: boolean`, `connectedColor?: string` |
+| `<ModelLegend />` | — |
+
+---
+
+## Layout primitives
+
+<Preview section="layout" height={220} />
+
+```tsx
+<StatGrid>
+  <MetricCard label="Today" value="12,418" sub="+8%" />
+  <MetricCard label="This week" value="68,201" sub="+22%" />
+  <MetricCard label="This month" value="284,910" sub="+11%" />
+  <MetricCard label="All time" value="1.2M" />
+</StatGrid>
+```
+
+| Component | Props |
+| --- | --- |
+| `<MetricCard />` | `label`, `value`, `sub?`, `size?, theme?` |
+| `<StatGrid>` | `children` — responsive 2-/4-col grid |
+
+---
+
+## Hero composition
+
+Everything together — what a real marketing page hero looks like.
+
+<Preview section="hero" height={500} />
+
+```tsx
+<ProviderConfig server={env.SERVER} token={env.TOKEN}>
+  <h1>
+    Our crew has processed <WeightedTokenCounter /> input-equivalent tokens.
+  </h1>
+  <StatGrid>
+    <MetricCard label="Tokens (weighted)" value={<WeightedTokenCounter />} />
+    <MetricCard label="Cost" value={<CostCounter />} />
+    <MetricCard label="Messages" value={<MessageCounter />} />
+    <MetricCard label="Status" value={<EmbedPulseDot size={10} withLabel />} />
+  </StatGrid>
+  <BurnSparkline range="24h" />
+</ProviderConfig>
+```
+
+---
 
 ## Theming
 
-Set `theme` on the provider, or override individual CSS custom properties:
+Set `theme` on individual components or override CSS custom properties:
 
 ```css
 :root {
@@ -71,29 +192,16 @@ Set `theme` on the provider, or override individual CSS custom properties:
 }
 ```
 
-All components are namespaced under the `data-wt` attribute so your global CSS won't bleed in unless you want it to.
-
 ## SSE & offline
 
-The provider establishes one SSE connection to `/embed/stream` and fans out updates to every consumer. If SSE fails (proxy buffering, captive portal), it falls back to polling at `refreshMs`. Reconnects with exponential backoff up to 60s.
+The provider establishes one SSE connection to `/embed/stream` and fans out updates to every consumer. If SSE fails (proxy buffering, captive portal), it falls back to polling at `pollIntervalMs`. Reconnects with exponential backoff up to 60s.
 
 ## SSR
 
 Counters render `0` on the server and hydrate to real values once SSE is alive. No layout shift if you reserve space with CSS.
 
-## Example: hero section
+## See also
 
-```tsx
-<ProviderConfig server={env.SERVER} token={env.TOKEN} theme="purple">
-  <StatGrid>
-    <MetricCard label="Tokens burned (weighted)" value={<WeightedTokenCounter />} />
-    <MetricCard label="Cost so far" value={<CostCounter />} />
-    <MetricCard label="Messages" value={<MessageCounter />} />
-    <MetricCard label="Status" value={<EmbedPulseDot size="md" />} />
-  </StatGrid>
-  <BurnSparkline window="24h" height={80} />
-  <TopUsers limit={5} />
-</ProviderConfig>
-```
-
-See the [demo site](https://wigtn.github.io/wigtoken/demo) for a live gallery.
+- [Live demo](/demo/) — the full showcase with theme switcher and editable config
+- [API reference](/api) — endpoints the widget hits behind the scenes
+- [Self-hosting](/self-host#embedding-on-a-public-site) — 2-layer security for embedding
