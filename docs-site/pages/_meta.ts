@@ -6,6 +6,6 @@ export default {
   widget: "Widget",
   agent: "Agent",
   hooks: "Claude Code hooks",
-  api: "API reference",
+  "api-reference": "API reference",
   comparison: "vs ccusage / CodeBurn",
 };

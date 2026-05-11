@@ -8,8 +8,8 @@ export const pageMap = [{
     "title": "Agent"
   }
 }, {
-  name: "api",
-  route: "/api",
+  name: "api-reference",
+  route: "/api-reference",
   frontMatter: {
     "title": "API reference"
   }
