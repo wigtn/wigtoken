@@ -1,4 +1,7 @@
 import type Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { desc, eq } from "drizzle-orm";
+import { embedOrigins } from "./schema/sqlite.ts";
 
 export interface EmbedOriginRow {
   id: number;
@@ -9,13 +12,10 @@ export interface EmbedOriginRow {
 }
 
 export class EmbedOriginStore {
-  private insertStmt: Database.Statement;
-  private listStmt: Database.Statement;
-  private deleteStmt: Database.Statement;
-  private findStmt: Database.Statement;
+  private db: ReturnType<typeof drizzle>;
 
-  constructor(private db: Database.Database) {
-    db.exec(`
+  constructor(raw: Database.Database) {
+    raw.exec(`
       CREATE TABLE IF NOT EXISTS embed_origins (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         origin     TEXT UNIQUE NOT NULL,
@@ -26,56 +26,51 @@ export class EmbedOriginStore {
       CREATE INDEX IF NOT EXISTS ix_embed_origins_origin
         ON embed_origins(origin);
     `);
-
-    this.insertStmt = db.prepare(
-      `INSERT INTO embed_origins (origin, label, created_at, created_by)
-       VALUES (?, ?, ?, ?)`
-    );
-    this.listStmt = db.prepare(
-      `SELECT id, origin, label, created_at, created_by
-       FROM embed_origins
-       ORDER BY created_at DESC`
-    );
-    this.deleteStmt = db.prepare(`DELETE FROM embed_origins WHERE id = ?`);
-    this.findStmt = db.prepare(
-      `SELECT id FROM embed_origins WHERE origin = ?`
-    );
+    this.db = drizzle(raw);
   }
 
   add(origin: string, label: string | null, createdBy: number | null): EmbedOriginRow {
     const createdAt = Date.now();
-    const res = this.insertStmt.run(origin, label, createdAt, createdBy);
+    const inserted = this.db
+      .insert(embedOrigins)
+      .values({ origin, label, createdAt, createdBy })
+      .returning()
+      .get();
     return {
-      id: Number(res.lastInsertRowid),
-      origin,
-      label,
-      createdAt,
-      createdBy,
+      id: inserted.id,
+      origin: inserted.origin,
+      label: inserted.label,
+      createdAt: inserted.createdAt,
+      createdBy: inserted.createdBy,
     };
   }
 
   list(): EmbedOriginRow[] {
-    const rows = this.listStmt.all() as Array<{
-      id: number;
-      origin: string;
-      label: string | null;
-      created_at: number;
-      created_by: number | null;
-    }>;
+    const rows = this.db
+      .select()
+      .from(embedOrigins)
+      .orderBy(desc(embedOrigins.createdAt))
+      .all();
     return rows.map((r) => ({
       id: r.id,
       origin: r.origin,
       label: r.label,
-      createdAt: r.created_at,
-      createdBy: r.created_by,
+      createdAt: r.createdAt,
+      createdBy: r.createdBy,
     }));
   }
 
   remove(id: number): boolean {
-    return this.deleteStmt.run(id).changes > 0;
+    const result = this.db.delete(embedOrigins).where(eq(embedOrigins.id, id)).run();
+    return result.changes > 0;
   }
 
   isAllowed(origin: string): boolean {
-    return this.findStmt.get(origin) !== undefined;
+    const row = this.db
+      .select({ id: embedOrigins.id })
+      .from(embedOrigins)
+      .where(eq(embedOrigins.origin, origin))
+      .get();
+    return row !== undefined;
   }
 }

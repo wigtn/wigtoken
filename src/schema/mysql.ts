@@ -65,7 +65,7 @@ export const auditLog = mysqlTable(
     action: varchar("action", { length: 64 }).notNull(),
     user: varchar("user", { length: 191 }),
     ip: varchar("ip", { length: 64 }),
-    meta: text("meta"),
+    metaJson: text("meta_json"),
   },
   (t) => ({
     tsIdx: index("idx_audit_ts").on(t.ts),

@@ -67,7 +67,7 @@ export const auditLog = sqliteTable(
     action: text("action").notNull(),
     user: text("user"),
     ip: text("ip"),
-    meta: text("meta"), // JSON-stringified
+    metaJson: text("meta_json"),
   },
   (t) => ({
     tsIdx: index("idx_audit_ts").on(t.ts),

@@ -1,5 +1,8 @@
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3";
 import { createHash, randomBytes } from "node:crypto";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { and, count, desc, eq, isNull } from "drizzle-orm";
+import { tokens as tokensTable } from "./schema/sqlite.ts";
 
 export type Scope = "ingest" | "read" | "admin" | "embed";
 export const SCOPES: Scope[] = ["ingest", "read", "admin", "embed"];
@@ -40,15 +43,10 @@ function generateToken(): string {
 }
 
 export class TokenStore {
-  private insertStmt: Database.Statement;
-  private findByHashStmt: Database.Statement;
-  private listStmt: Database.Statement;
-  private revokeStmt: Database.Statement;
-  private touchStmt: Database.Statement;
-  private bootstrapStmt: Database.Statement;
+  private db: ReturnType<typeof drizzle>;
 
-  constructor(private db: Database.Database) {
-    db.exec(`
+  constructor(raw: Database.Database) {
+    raw.exec(`
       CREATE TABLE IF NOT EXISTS tokens (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
         token_hash   TEXT UNIQUE NOT NULL,
@@ -62,29 +60,7 @@ export class TokenStore {
       );
       CREATE INDEX IF NOT EXISTS ix_tokens_user ON tokens(user);
     `);
-
-    this.insertStmt = db.prepare(
-      `INSERT INTO tokens (token_hash, user, scope, label, created_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    );
-    this.findByHashStmt = db.prepare(
-      `SELECT id, user, scope, label, created_at, expires_at, revoked_at, last_used_at
-       FROM tokens WHERE token_hash = ?`
-    );
-    this.listStmt = db.prepare(
-      `SELECT id, user, scope, label, created_at, expires_at, revoked_at, last_used_at
-       FROM tokens
-       ORDER BY created_at DESC`
-    );
-    this.revokeStmt = db.prepare(
-      `UPDATE tokens SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`
-    );
-    this.touchStmt = db.prepare(
-      `UPDATE tokens SET last_used_at = ? WHERE id = ?`
-    );
-    this.bootstrapStmt = db.prepare(
-      `SELECT COUNT(*) AS n FROM tokens WHERE scope = 'admin' AND revoked_at IS NULL`
-    );
+    this.db = drizzle(raw);
   }
 
   issue(args: {
@@ -99,16 +75,20 @@ export class TokenStore {
     const token = generateToken();
     const hash = hashToken(token);
     const createdAt = Date.now();
-    const result = this.insertStmt.run(
-      hash,
-      args.user,
-      args.scope,
-      args.label ?? null,
-      createdAt,
-      args.expiresAt ?? null
-    );
+    const inserted = this.db
+      .insert(tokensTable)
+      .values({
+        tokenHash: hash,
+        user: args.user,
+        scope: args.scope,
+        label: args.label ?? null,
+        createdAt,
+        expiresAt: args.expiresAt ?? null,
+      })
+      .returning({ id: tokensTable.id })
+      .get();
     return {
-      id: Number(result.lastInsertRowid),
+      id: inserted.id,
       user: args.user,
       scope: args.scope,
       label: args.label ?? null,
@@ -124,67 +104,68 @@ export class TokenStore {
    */
   resolve(plainToken: string): TokenRow | null {
     if (!plainToken.startsWith(PREFIX)) return null;
-    const row = this.findByHashStmt.get(hashToken(plainToken)) as
-      | {
-          id: number;
-          user: string;
-          scope: Scope;
-          label: string | null;
-          created_at: number;
-          expires_at: number | null;
-          revoked_at: number | null;
-          last_used_at: number | null;
-        }
-      | undefined;
+    const row = this.db
+      .select()
+      .from(tokensTable)
+      .where(eq(tokensTable.tokenHash, hashToken(plainToken)))
+      .get();
     if (!row) return null;
-    if (row.revoked_at !== null) return null;
-    if (row.expires_at !== null && row.expires_at < Date.now()) return null;
+    if (row.revokedAt !== null) return null;
+    if (row.expiresAt !== null && row.expiresAt < Date.now()) return null;
 
-    this.touchStmt.run(Date.now(), row.id);
+    this.db
+      .update(tokensTable)
+      .set({ lastUsedAt: Date.now() })
+      .where(eq(tokensTable.id, row.id))
+      .run();
 
     return {
       id: row.id,
       user: row.user,
-      scope: row.scope,
+      scope: row.scope as Scope,
       label: row.label,
-      createdAt: row.created_at,
-      expiresAt: row.expires_at,
-      revokedAt: row.revoked_at,
-      lastUsedAt: row.last_used_at,
+      createdAt: row.createdAt,
+      expiresAt: row.expiresAt,
+      revokedAt: row.revokedAt,
+      lastUsedAt: row.lastUsedAt,
     };
   }
 
   list(): TokenRow[] {
-    const rows = this.listStmt.all() as Array<{
-      id: number;
-      user: string;
-      scope: Scope;
-      label: string | null;
-      created_at: number;
-      expires_at: number | null;
-      revoked_at: number | null;
-      last_used_at: number | null;
-    }>;
+    const rows = this.db
+      .select()
+      .from(tokensTable)
+      .orderBy(desc(tokensTable.createdAt))
+      .all();
     return rows.map((r) => ({
       id: r.id,
       user: r.user,
-      scope: r.scope,
+      scope: r.scope as Scope,
       label: r.label,
-      createdAt: r.created_at,
-      expiresAt: r.expires_at,
-      revokedAt: r.revoked_at,
-      lastUsedAt: r.last_used_at,
+      createdAt: r.createdAt,
+      expiresAt: r.expiresAt,
+      revokedAt: r.revokedAt,
+      lastUsedAt: r.lastUsedAt,
     }));
   }
 
   revoke(id: number): boolean {
-    const result = this.revokeStmt.run(Date.now(), id);
+    const result = this.db
+      .update(tokensTable)
+      .set({ revokedAt: Date.now() })
+      .where(and(eq(tokensTable.id, id), isNull(tokensTable.revokedAt)))
+      .run();
     return result.changes > 0;
   }
 
   /** True when no live admin token exists — caller should bootstrap one. */
   needsBootstrapAdmin(): boolean {
-    const row = this.bootstrapStmt.get() as { n: number };
-    return row.n === 0;
+    const row = this.db
+      .select({ n: count() })
+      .from(tokensTable)
+      .where(and(eq(tokensTable.scope, "admin"), isNull(tokensTable.revokedAt)))
+      .get();
+    return (row?.n ?? 0) === 0;
   }
 }
+

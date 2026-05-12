@@ -65,7 +65,7 @@ export const auditLog = pgTable(
     action: text("action").notNull(),
     user: text("user"),
     ip: text("ip"),
-    meta: text("meta"),
+    metaJson: text("meta_json"),
   },
   (t) => ({
     tsIdx: index("idx_audit_ts").on(t.ts),

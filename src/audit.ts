@@ -1,4 +1,7 @@
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { and, desc, gte } from "drizzle-orm";
+import { auditLog } from "./schema/sqlite.ts";
 
 export interface AuditEntry {
   ts: number;
@@ -10,11 +13,10 @@ export interface AuditEntry {
 }
 
 export class AuditLog {
-  private insertStmt: Database.Statement;
-  private listStmt: Database.Statement;
+  private db: ReturnType<typeof drizzle>;
 
-  constructor(private db: Database.Database) {
-    db.exec(`
+  constructor(raw: Database.Database) {
+    raw.exec(`
       CREATE TABLE IF NOT EXISTS audit_log (
         id        INTEGER PRIMARY KEY AUTOINCREMENT,
         ts        INTEGER NOT NULL,
@@ -27,49 +29,40 @@ export class AuditLog {
       CREATE INDEX IF NOT EXISTS ix_audit_ts ON audit_log(ts);
       CREATE INDEX IF NOT EXISTS ix_audit_user ON audit_log(user);
     `);
-
-    this.insertStmt = db.prepare(
-      `INSERT INTO audit_log (ts, token_id, action, user, ip, meta_json)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    );
-    this.listStmt = db.prepare(
-      `SELECT ts, token_id, action, user, ip, meta_json
-       FROM audit_log
-       WHERE ts >= ?
-       ORDER BY ts DESC
-       LIMIT ?`
-    );
+    this.db = drizzle(raw);
   }
 
   record(entry: AuditEntry): void {
-    this.insertStmt.run(
-      entry.ts,
-      entry.tokenId,
-      entry.action,
-      entry.user,
-      entry.ip,
-      entry.meta === undefined ? null : JSON.stringify(entry.meta)
-    );
+    this.db
+      .insert(auditLog)
+      .values({
+        ts: entry.ts,
+        tokenId: entry.tokenId,
+        action: entry.action,
+        user: entry.user,
+        ip: entry.ip,
+        metaJson: entry.meta === undefined ? null : JSON.stringify(entry.meta),
+      })
+      .run();
   }
 
   list(opts: { sinceMs?: number; limit?: number } = {}): AuditEntry[] {
     const since = opts.sinceMs ?? Date.now() - 7 * 24 * 60 * 60 * 1000;
     const limit = opts.limit ?? 500;
-    const rows = this.listStmt.all(since, limit) as Array<{
-      ts: number;
-      token_id: number | null;
-      action: string;
-      user: string | null;
-      ip: string | null;
-      meta_json: string | null;
-    }>;
+    const rows = this.db
+      .select()
+      .from(auditLog)
+      .where(and(gte(auditLog.ts, since)))
+      .orderBy(desc(auditLog.ts))
+      .limit(limit)
+      .all();
     return rows.map((r) => ({
       ts: r.ts,
-      tokenId: r.token_id,
+      tokenId: r.tokenId,
       action: r.action,
       user: r.user,
       ip: r.ip,
-      meta: r.meta_json ? safeParse(r.meta_json) : undefined,
+      meta: r.metaJson ? safeParse(r.metaJson) : undefined,
     }));
   }
 }
