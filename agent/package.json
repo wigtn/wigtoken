@@ -1,6 +1,6 @@
 {
   "name": "@wigtoken-temp/agent",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Cross-platform agent that watches Claude Code transcripts on a developer's machine and pushes new messages to a wigtoken server.",
   "type": "module",
   "license": "MIT",

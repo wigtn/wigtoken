@@ -82,6 +82,25 @@ HEADLESS=true npm start
 
 In headless mode `GET /` returns a plain-text banner instead of the SPA.
 
+## Database engine
+
+wigtoken ships with SQLite as the default — zero configuration, one file. v0.2.x also accepts a `DB_URL` env var that hints at where the data lives:
+
+```bash
+# Default (sqlite, this is what every existing install gets)
+DB_URL=sqlite:./data/stats.db
+
+# Postgres — coming in v0.3 (server will refuse to start today)
+DB_URL=postgres://user:pass@host:5432/wigtoken
+
+# MySQL — coming in v0.3
+DB_URL=mysql://user:pass@host:3306/wigtoken
+```
+
+`wigtoken doctor` prints the resolved engine + URL so you can verify the config without starting the server. The setup wizard reads `db.kind` from `/api/setup/status` and shows the active engine.
+
+> **Heads-up:** Postgres and MySQL backends are scaffolded but not yet functional — the server throws a clear error at startup if you point `DB_URL` at one. SQLite is the only production-ready engine for v0.2.x.
+
 ## Backups
 
 The SQLite database is the only persistent state. Snapshot it with:

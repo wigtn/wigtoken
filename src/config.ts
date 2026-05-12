@@ -23,11 +23,33 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 
 export type Mode = "solo" | "team";
+export type DbKind = "sqlite" | "postgres" | "mysql";
+
+export interface DbConfig {
+  /**
+   * Engine to use. Inferred from DB_URL prefix when set, falls back
+   * to DB_KIND env, then to "sqlite" so zero-config solo installs
+   * keep working without any DB env vars.
+   */
+  kind: DbKind;
+  /**
+   * Connection string. Forms accepted:
+   *   - sqlite:./data/stats.db   (or just a bare path)
+   *   - postgres://user:pass@host:5432/db
+   *   - mysql://user:pass@host:3306/db
+   * For sqlite the path is the file; for the others it's a libpq /
+   * libmysqlclient-style URL parsed by the respective driver.
+   */
+  url: string;
+}
 
 export interface AppConfig {
   mode: Mode;
   projectsDir: string;
+  /** Legacy alias — DB file path for sqlite. Prefer `db.url`. */
   dbPath: string;
+  /** Resolved DB target (engine + connection string). */
+  db: DbConfig;
   port: number;
   allowedOrigins: string[];
   watcher: {
@@ -59,6 +81,41 @@ function envList(value: string | undefined, fallback: string[]): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/**
+ * Parse DB_URL into kind + url. Falls back to DB_KIND + a synthesised
+ * URL for backwards compatibility. When nothing is set, returns a
+ * sqlite config pointed at `<repo>/data/stats.db` (legacy default).
+ */
+function resolveDb(legacySqlitePath: string): DbConfig {
+  const url = (process.env.DB_URL ?? "").trim();
+  const kindEnv = (process.env.DB_KIND ?? "").trim().toLowerCase() as DbKind;
+
+  if (url) {
+    if (url.startsWith("postgres://") || url.startsWith("postgresql://")) {
+      return { kind: "postgres", url };
+    }
+    if (url.startsWith("mysql://")) {
+      return { kind: "mysql", url };
+    }
+    if (url.startsWith("sqlite:")) {
+      return { kind: "sqlite", url: url.slice("sqlite:".length) };
+    }
+    // Bare path treated as sqlite file.
+    if (url.startsWith("/") || url.startsWith(".") || url.endsWith(".db")) {
+      return { kind: "sqlite", url };
+    }
+    // Unknown scheme — let driver-loading fail loudly later.
+    return { kind: kindEnv || "sqlite", url };
+  }
+
+  if (kindEnv === "postgres" || kindEnv === "mysql") {
+    throw new Error(
+      `DB_KIND=${kindEnv} requires DB_URL to be set with a connection string.`
+    );
+  }
+  return { kind: "sqlite", url: legacySqlitePath };
 }
 
 /**
@@ -96,12 +153,9 @@ function detectMode(projectsDir: string): Mode {
       }
     });
 
-  // Solo's Claude Code layout: `<projectsDir>/-encoded-cwd/<session>.jsonl`.
   const looksLikeSolo = dirs.some((name) => name.startsWith("-"));
   if (looksLikeSolo) return "solo";
 
-  // Team layout: `<projectsDir>/<user>/...`. No leading dash, no .jsonl
-  // sitting at the user level (those live further down).
   const looksLikeTeam = dirs.length > 0 && dirs.every((name) => !name.startsWith("-"));
   return looksLikeTeam ? "team" : "solo";
 }
@@ -111,11 +165,14 @@ export function loadConfig(): AppConfig {
     process.env.CLAUDE_PROJECTS_DIR ?? join(homedir(), ".claude", "projects");
 
   const mode = detectMode(projectsDir);
+  const dbPath = process.env.STATS_DB_PATH ?? join(ROOT, "data", "stats.db");
+  const db = resolveDb(dbPath);
 
   return {
     mode,
     projectsDir,
-    dbPath: process.env.STATS_DB_PATH ?? join(ROOT, "data", "stats.db"),
+    dbPath,
+    db,
     port: Number(process.env.PORT ?? 10103),
     allowedOrigins: envList(process.env.ALLOWED_ORIGINS, [
       "http://localhost:3000",

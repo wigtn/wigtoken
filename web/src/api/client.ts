@@ -200,6 +200,9 @@ export interface SetupStatus {
   infra: string | null;
   completedAt: number | null;
   headless: boolean;
+  db?: {
+    kind: "sqlite" | "postgres" | "mysql";
+  };
 }
 
 export const setup = {

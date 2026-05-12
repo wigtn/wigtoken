@@ -55,7 +55,7 @@ export function bootstrapAdmin(storage: Storage): string | null {
  * exits the event loop.
  */
 export async function startDaemon(cfg: AppConfig = loadConfig()) {
-  const storage = openStorage(cfg.dbPath);
+  const storage = openStorage(cfg.db);
   const { store } = storage;
   bootstrapAdmin(storage);
 
@@ -88,7 +88,7 @@ export async function startDaemon(cfg: AppConfig = loadConfig()) {
 
   console.log(`Mode: ${cfg.mode}`);
   console.log(`Watching ${cfg.projectsDir}`);
-  console.log(`DB: ${cfg.dbPath}`);
+  console.log(`DB: ${cfg.db.kind} → ${cfg.db.url}`);
   console.log(`Allowed origins: ${cfg.allowedOrigins.join(", ")}`);
 
   const watcher = chokidar.watch(cfg.projectsDir, {

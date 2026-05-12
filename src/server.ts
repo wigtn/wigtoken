@@ -461,6 +461,9 @@ export function buildApp(deps: ServerDeps) {
       infra: settings.get("setup.infra"),
       completedAt: Number(settings.get("setup.completedAt")) || null,
       headless,
+      db: {
+        kind: storage.kind,
+      },
     })
   );
 

@@ -17,7 +17,8 @@ Usage:
 Environment:
   PORT                  HTTP port (default 10103)
   CLAUDE_PROJECTS_DIR   Path to ~/.claude/projects (or shared multi-user root)
-  STATS_DB_PATH         SQLite file path (default ./data/stats.db)
+  DB_URL                sqlite:./data/stats.db (default), postgres://…, mysql://…
+  STATS_DB_PATH         (legacy) SQLite file path, used when DB_URL is unset
   ALLOWED_ORIGINS       Comma-separated CORS allowlist
   HEADLESS              true → no dashboard, ingest+embed only
   MODE                  solo | team (auto-detected when unset)
@@ -28,8 +29,8 @@ Docs: https://wigtn.github.io/wigtoken/
 declare const __VERSION__: string;
 const VERSION = typeof __VERSION__ !== "undefined" ? __VERSION__ : "dev";
 
-function ensureDataDir(dbPath: string) {
-  const dir = dirname(resolve(dbPath));
+function ensureSqliteDir(url: string) {
+  const dir = dirname(resolve(url));
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
     console.log(`Created data dir: ${dir}`);
@@ -38,12 +39,12 @@ function ensureDataDir(dbPath: string) {
 
 async function cmdInit() {
   const cfg = loadConfig();
-  ensureDataDir(cfg.dbPath);
-  const storage = openStorage(cfg.dbPath);
+  if (cfg.db.kind === "sqlite") ensureSqliteDir(cfg.db.url);
+  const storage = openStorage(cfg.db);
   const issued = bootstrapAdmin(storage);
   if (!issued) {
     console.log("Database already initialized — no new admin token issued.");
-    console.log(`DB: ${cfg.dbPath}`);
+    console.log(`DB: ${cfg.db.kind} → ${cfg.db.url}`);
     console.log("Use the existing admin token, or rotate via /admin/tokens.");
   }
   storage.close();
@@ -56,8 +57,11 @@ function cmdDoctor() {
   console.log(`mode               ${cfg.mode}`);
   console.log(`projectsDir        ${cfg.projectsDir}`);
   console.log(`  exists           ${existsSync(cfg.projectsDir)}`);
-  console.log(`dbPath             ${cfg.dbPath}`);
-  console.log(`  dir exists       ${existsSync(dirname(cfg.dbPath))}`);
+  console.log(`db.kind            ${cfg.db.kind}`);
+  console.log(`db.url             ${cfg.db.url}`);
+  if (cfg.db.kind === "sqlite") {
+    console.log(`  dir exists       ${existsSync(dirname(cfg.db.url))}`);
+  }
   console.log(`port               ${cfg.port}`);
   console.log(`allowedOrigins     ${cfg.allowedOrigins.join(", ") || "(none)"}`);
   console.log(`headless           ${cfg.headless}`);
@@ -70,7 +74,7 @@ function cmdDoctor() {
 
 async function cmdStart() {
   const cfg = loadConfig();
-  ensureDataDir(cfg.dbPath);
+  if (cfg.db.kind === "sqlite") ensureSqliteDir(cfg.db.url);
   const daemon = await startDaemon(cfg);
   const shutdown = (signal: string) => {
     console.log(`Received ${signal}, shutting down`);
