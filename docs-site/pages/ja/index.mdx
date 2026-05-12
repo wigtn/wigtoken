@@ -1,0 +1,58 @@
+---
+title: 概要
+---
+
+import Hero from "../../components/Hero.tsx";
+import FeatureGrid from "../../components/FeatureGrid.tsx";
+import Preview from "../../components/Preview.tsx";
+
+<Hero
+  eyebrow="v0.2 · セルフホスト"
+  title={<>Claude Code チームのためのトークンメーター。</>}
+  subtitle="マルチユーザー集計、リアルタイム SSE、貼り付け可能な React ウィジェット、内蔵ダッシュボード。ワンコマンドでセルフホスト — 使用データはすべて自分のインフラに。"
+  ctas={[
+    { label: "クイックスタート", href: "/quickstart", variant: "primary" },
+    { label: "ライブデモ", href: "/demo/", variant: "ghost" },
+    { label: "GitHub", href: "https://github.com/wigtn/wigtoken", variant: "ghost" },
+  ]}
+/>
+
+> 🌏 日本語ドキュメントは現在「概要」のみ翻訳済みです。詳細な手順は英語版または[韓国語版](/ko/)をご覧ください。
+
+## 特徴
+
+<FeatureGrid features={[
+  {
+    title: "どこでもライブカウンター",
+    body: "<TokenCounter /> をチームサイト・マーケティングページに貼るだけ。SSE で全エンベッドが同期。",
+    accent: "#a78bfa",
+  },
+  {
+    title: "最初からマルチユーザー",
+    body: "ユーザー / マシン / モデル別リーダーボード。ソロでも 50 人組織でも同じサーバー。",
+    accent: "#5eead4",
+  },
+  {
+    title: "ダッシュボード内蔵",
+    body: "/ にビルトイン SPA。Grafana 不要。Prometheus はオプション。",
+    accent: "#fbbf24",
+  },
+  {
+    title: "データは自分のディスク",
+    body: "デフォルト SQLite。Postgres / MySQL は v0.3 で。",
+    accent: "#22d3ee",
+  },
+]} />
+
+## 直接見る
+
+<Preview section="hero" height={520} />
+
+## インストール
+
+```bash
+npm install -g @wigtoken-temp/wigtoken
+wigtoken init && wigtoken start
+```
+
+詳しくは英語版の [Quickstart](/quickstart) を参照。

@@ -1,0 +1,58 @@
+---
+title: 简介
+---
+
+import Hero from "../../components/Hero.tsx";
+import FeatureGrid from "../../components/FeatureGrid.tsx";
+import Preview from "../../components/Preview.tsx";
+
+<Hero
+  eyebrow="v0.2 · 自托管"
+  title={<>面向 Claude Code 团队的令牌计量器。</>}
+  subtitle="多用户聚合、实时 SSE、可嵌入的 React 小部件，以及内置仪表板。一条命令完成自托管 — 所有使用数据保留在自己的基础设施上。"
+  ctas={[
+    { label: "快速开始", href: "/quickstart", variant: "primary" },
+    { label: "实时演示", href: "/demo/", variant: "ghost" },
+    { label: "GitHub", href: "https://github.com/wigtn/wigtoken", variant: "ghost" },
+  ]}
+/>
+
+> 🌏 中文文档目前仅翻译了"简介"页面。详细步骤请参阅英文版或[韩文版](/ko/)。
+
+## 特性
+
+<FeatureGrid features={[
+  {
+    title: "随处实时计数器",
+    body: "在团队站点或营销页放上 <TokenCounter />。SSE 让所有嵌入实时同步。",
+    accent: "#a78bfa",
+  },
+  {
+    title: "天生多用户",
+    body: "按用户 / 机器 / 模型分组的排行榜。从单人到 50 人组织共用一套服务器。",
+    accent: "#5eead4",
+  },
+  {
+    title: "内置仪表板",
+    body: "/ 路径有内置 SPA。无需 Grafana。Prometheus 可选。",
+    accent: "#fbbf24",
+  },
+  {
+    title: "数据在自己磁盘",
+    body: "默认 SQLite。Postgres / MySQL 即将在 v0.3 提供。",
+    accent: "#22d3ee",
+  },
+]} />
+
+## 直接观看
+
+<Preview section="hero" height={520} />
+
+## 安装
+
+```bash
+npm install -g @wigtoken-temp/wigtoken
+wigtoken init && wigtoken start
+```
+
+详细文档请参阅英文版 [Quickstart](/quickstart)。

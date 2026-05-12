@@ -1,0 +1,122 @@
+---
+title: 셀프 호스팅
+---
+
+# 셀프 호스팅
+
+wigtoken을 직접 운영할 때 마주치는 설계 질문들 — 특히 위젯을 공개 사이트에 임베드할 때 알아둘 점들.
+
+## DNS & TLS
+
+서버는 `:10103`에서 평문 HTTP. TLS는 앞단에 리버스 프록시(nginx, Caddy, Cloudflare Tunnel, traefik 등)로 처리. nginx 예시:
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name token.example.com;
+  ssl_certificate /etc/letsencrypt/live/token.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/token.example.com/privkey.pem;
+
+  location / {
+    proxy_pass http://127.0.0.1:10103;
+    proxy_http_version 1.1;
+    proxy_buffering off;          # SSE 필수
+    proxy_read_timeout 24h;       # SSE 필수
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+`proxy_buffering off` 가 중요합니다 — 이게 없으면 SSE 엔드포인트(`/api/usage/stream`, `/embed/stream`)가 브라우저 연결이 닫힐 때까지 버퍼링됩니다.
+
+## 토큰 스코프
+
+| 스코프 | 가능한 동작 | 발급 대상 |
+| --- | --- | --- |
+| `ingest` | POST `/api/ingest/messages` | 각 Claude Code 유저/머신 |
+| `read` | GET `/api/usage/*`, SSE | 내부 툴, CI 스크립트 |
+| `embed` | 화이트리스트 오리진에서만 GET `/embed/*` | 공개 사이트의 위젯 |
+| `admin` | 위 모두 + 토큰/임베드 관리 | 운영자 |
+
+토큰 발급/폐기는 `POST /api/admin/tokens` / `DELETE /api/admin/tokens/:id`. 감사 로그에 두 동작 모두 기록됩니다.
+
+## 공개 사이트에 임베드
+
+2겹 방어:
+
+1. **CORS 화이트리스트** — `embed-origins` 테이블에 있는 오리진만 `/embed/*` 호출 가능
+2. **embed 스코프 토큰** — 위젯의 `ProviderConfig`에 `?token=we_…` 쿼리
+
+둘 다 일치해야 위젯이 렌더링됩니다.
+
+```tsx
+import { ProviderConfig, TokenCounter, CostCounter } from "@wigtoken-temp/widget";
+
+export function HeroBanner() {
+  return (
+    <ProviderConfig
+      server="https://token.example.com"
+      token={process.env.NEXT_PUBLIC_WIGTN_EMBED_TOKEN!}
+    >
+      <h1>
+        팀이 누적 처리한 토큰: <TokenCounter mode="weighted" />
+      </h1>
+      <CostCounter />
+    </ProviderConfig>
+  );
+}
+```
+
+embed 토큰은 **공개**임 (번들에 포함됨). 그럼에도 안전한 이유는 화이트리스트 오리진에서만 동작하기 때문.
+
+## 헤드리스 모드
+
+`HEADLESS=true`로 대시보드 SPA 자체를 끕니다. 서버는 ingest와 embed 엔드포인트만 노출. 메트릭 레이어만 필요하고 토큰은 CLI/스크립트로 관리하는 케이스에 적합.
+
+```bash
+HEADLESS=true npm start
+```
+
+헤드리스에서 `GET /`는 SPA 대신 평문 배너를 반환합니다.
+
+## 데이터베이스 엔진
+
+wigtoken은 기본 SQLite — 설정 0, 파일 1개. v0.2.x부터 `DB_URL` env var로 위치/엔진을 지정 가능:
+
+```bash
+# 기본 (sqlite — 기존 설치는 이대로)
+DB_URL=sqlite:./data/stats.db
+
+# Postgres — v0.3 예정 (현재는 서버가 명확한 에러로 거부)
+DB_URL=postgres://user:pass@host:5432/wigtoken
+
+# MySQL — v0.3 예정
+DB_URL=mysql://user:pass@host:3306/wigtoken
+```
+
+`wigtoken doctor`가 해석된 엔진/URL을 출력해서 서버 시작 전에 확인 가능. setup wizard는 `/api/setup/status`의 `db.kind`를 읽어 현재 엔진을 표시.
+
+> **주의:** Postgres / MySQL 백엔드는 스캐폴드만 있고 아직 미구현 — `DB_URL`이 이쪽이면 서버가 시작 시점에 명시적 에러로 거부. v0.2.x에서는 SQLite만 운영 준비됨.
+
+## 백업
+
+SQLite 파일이 유일한 영속 상태. 스냅샷:
+
+```bash
+sqlite3 /var/lib/wigtoken/stats.db ".backup '/backups/stats-$(date +%F).db'"
+```
+
+WAL 켜져 있어서 `.backup` 명령은 동시 쓰기 중에도 일관성 보장. `cp`로 그냥 복사하지 마세요 — checkpoint 도중에 걸릴 수 있음.
+
+## 업그레이드
+
+스키마는 시작 시 자동 마이그레이션. 메이저 버전 업그레이드 전:
+
+1. 서버 정지
+2. `stats.db` 백업
+3. 새 이미지/바이너리 가져오기
+4. 시작 — 마이그레이션이 부팅 중에 실행, 실패 시 명확한 에러로 startup 중단
+
+CHANGELOG에서 깨질 변경은 `BREAKING:` 라인으로 표시됩니다.

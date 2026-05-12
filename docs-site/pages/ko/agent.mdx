@@ -1,0 +1,79 @@
+---
+title: 에이전트
+---
+
+# @wigtoken-temp/agent
+
+개인 노트북에서 Claude Code transcript를 원격 wigtoken 서버로 푸시하는 CLI 데몬. 적합한 케이스:
+
+- 네트워크가 불안정해서 데이터 유실을 피하고 싶을 때
+- Claude Code를 오프라인에서 가끔 쓸 때
+- 모든 머신에 `~/.claude/settings.json` 훅을 유지하기 싫을 때
+
+네트워크가 안정적이면 [훅 방식](/ko/hooks)이 더 간단합니다.
+
+## 설치
+
+```bash
+npm install -g @wigtoken-temp/agent
+```
+
+## 토큰 받기
+
+wigtoken 운영자가 `/admin/tokens`에서 `ingest` 스코프 토큰을 발급. `wti_…` 형태.
+
+## 실행
+
+```bash
+wigtoken-agent run \
+  --server https://token.example.com \
+  --token wti_… \
+  --machine "$(hostname -s)"
+```
+
+에이전트 동작:
+
+1. chokidar로 `~/.claude/projects/` 감시
+2. 각 `.jsonl`을 마지막 오프셋부터 읽음 (오프셋은 `~/.config/wigtoken-agent/offsets.json`에 저장)
+3. 어시스턴트 메시지의 usage row 추출
+4. `/api/ingest/messages`로 배치 POST
+5. 네트워크 실패 시 파일 기반 FIFO 큐 (`~/.local/share/wigtoken-agent/queue/`)에 저장 후 exponential backoff (최대 60s)로 재시도
+
+## 서비스로 실행
+
+**macOS (launchctl):**
+
+```bash
+wigtoken-agent install --user
+launchctl load ~/Library/LaunchAgents/com.wigtn.token.agent.plist
+```
+
+**Linux (systemd --user):**
+
+```bash
+wigtoken-agent install --user --systemd
+systemctl --user enable --now wigtoken-agent
+```
+
+## Ping (스모크 테스트)
+
+```bash
+wigtoken-agent ping --server https://token.example.com --token wti_…
+# → 200 OK, user=alice, scope=ingest
+```
+
+## 플래그
+
+| 플래그 | 기본값 | 설명 |
+| --- | --- | --- |
+| `--server` | 필수 | wigtoken 서버 https URL |
+| `--token` | 필수 | `ingest` 스코프 bearer 토큰 |
+| `--machine` | `hostname -s` | 대시보드에 표시될 라벨 |
+| `--projects-dir` | `~/.claude/projects` | 기본 외 Claude Code 설치 경로 override |
+| `--batch-size` | 50 | POST 한 번에 보낼 메시지 수 |
+| `--poll-ms` | 1000 | fsevents 누락 시 폴링 fallback 간격 |
+| `--verbose` | 꺼짐 | 모든 배치를 바이트수와 함께 출력 |
+
+## 프라이버시
+
+에이전트는 **다음만** 전송: 모델명, 토큰 개수 (input/cache_creation/cache_read/output), 메시지 ID, 타임스탬프, 라벨, 머신명. 프롬프트 내용, 툴 호출, 파일 경로는 **보내지 않습니다**.

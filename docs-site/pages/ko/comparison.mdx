@@ -1,0 +1,47 @@
+---
+title: ccusage / CodeBurn 비교
+---
+
+# wigtoken은 어떻게 다른가
+
+Claude Code 사용량을 추적하는 3가지 옵션 비교.
+
+|  | wigtoken | [ccusage](https://github.com/ryoppippi/ccusage) | [CodeBurn](https://codeburn.dev) |
+| --- | --- | --- | --- |
+| **표면** | 서버 + 대시보드 + npm 위젯 | CLI | 호스티드 웹앱 |
+| **호스팅** | 셀프 호스팅 (자유) | 로컬 전용 | SaaS (자사 인프라) |
+| **멀티 유저** | ✅ | ❌ | ❌ (단일) |
+| **멀티 머신** | ✅ (에이전트/훅) | ❌ | ❌ |
+| **실시간** | ✅ SSE | n/a (one-shot) | poll 기반 |
+| **공개 사이트 임베드** | ✅ npm 위젯 | ❌ | ❌ |
+| **Prometheus 메트릭** | ✅ `/metrics` | ❌ | ❌ |
+| **Grafana 대시보드** | ✅ 제공 | ❌ | ❌ |
+| **커스텀 위젯 컴포넌트** | 16개 이상 | n/a | ❌ |
+| **비용 breakdown** | ✅ 유저/모델/머신별 | ✅ 모델별 | ✅ 모델별 |
+| **감사 로그** | ✅ | ❌ | ❌ |
+| **토큰 스코프** | ingest / read / embed / admin | n/a | n/a |
+| **데이터 소유** | 본인 (SQLite 파일) | 본인 (로컬) | 그들 |
+| **설치 시간** | 솔로 2분 / 팀 10분 | 30초 | 30초 |
+| **라이선스** | MIT | MIT | 사유 |
+
+## 어떨 때 무엇
+
+- **ccusage** — 솔로 개발자, CLI 요약만 필요, 임베드/장기 히스토리 관심 없음
+- **CodeBurn** — 예쁜 호스티드 UI 원하고, 데이터를 그쪽에 맡겨도 OK, 솔로만
+- **wigtoken** — 팀/조직 뷰 필요, 마케팅 사이트에 라이브 카운터 임베드, Prometheus 통합, 또는 사용량 데이터를 외부에 안 맡기고 싶을 때
+
+## 이전 경로
+
+### ccusage에서
+
+ccusage는 Claude Code가 자체 보관하는 것 외 데이터를 저장하지 않음. wigtoken을 `~/.claude/projects/` 디렉토리에 그냥 향하게 두면 됨 — 첫 스캔에서 기존 JSONL부터 backfill.
+
+### CodeBurn에서
+
+CodeBurn의 데이터는 그들 소유 — 작성 시점 export 불가. 전환기에 두 시스템을 병행 운영하다가 wigtoken에 필요한 히스토리 (보통 2~4주)가 쌓이면 스위치.
+
+## 추가하지 않을 기능들
+
+- **Anthropic API 사용량 추적.** Anthropic Console에서 이미 보여줌 — wigtoken은 Claude Code 세션 사용량에 집중.
+- **프롬프트 본문 저장.** 프라이버시 레드라인 — usage 카운트와 메타데이터만 저장.
+- **Slack / Discord 알림 기본 제공.** Prometheus Alertmanager 경유로 연동 — 그쪽이 올바른 추상화 레벨.

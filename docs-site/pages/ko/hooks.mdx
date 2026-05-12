@@ -1,0 +1,64 @@
+---
+title: Claude Code 훅
+---
+
+# Claude Code 훅
+
+[`@wigtoken-temp/agent`](/ko/agent) 대신 쓸 수 있는 가벼운 방식. `~/.claude/settings.json`에 블록 하나만 추가하면 그 머신의 모든 Claude Code 세션이 wigtoken 서버로 메시지를 스트림.
+
+## 훅 vs 에이전트
+
+| | 훅 | 에이전트 |
+| --- | --- | --- |
+| 백그라운드 프로세스 | 없음 | Node 데몬 (launchd / systemd) |
+| Claude Code가 닫혀있을 때 세션 캐치 | n/a | 다음 재시작 시 JSONL 읽음 |
+| 오프라인 재시도 큐 | ❌ (실패 POST 손실) | ✅ 파일 기반 FIFO + exponential backoff |
+| 설치 | settings.json 한 번 편집 | npm install + 토큰 + 서비스 파일 |
+| 재시작 생존 | ✅ | ✅ |
+| 네트워크 실패 복원력 | ❌ | ✅ |
+| 적합 케이스 | 신뢰 네트워크, 가벼운 사용, 빠른 데모 | 공유/공개 네트워크, 헤비 사용 |
+
+네트워크가 가끔 끊기고 데이터 유실이 싫으면 에이전트. 30초 안에 숫자만 흐르는 거 보고 싶으면 훅.
+
+## 설치 (~30초)
+
+1. 운영자에게서 `ingest` 스코프 bearer 토큰 받기 (대시보드의 `/admin/tokens`)
+
+2. `~/.claude/settings.json`에 병합:
+
+```jsonc
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "WIGTOKEN_SERVER='https://your-wigtoken' WIGTOKEN_TOKEN='wti_…' WIGTOKEN_MACHINE=\"$(hostname)\" /usr/bin/env bash -c 'curl -sS -X POST \"$WIGTOKEN_SERVER/api/ingest/messages\" -H \"Authorization: Bearer $WIGTOKEN_TOKEN\" -H \"Content-Type: application/json\" -d \"$(jq -nc --arg m \"$WIGTOKEN_MACHINE\" --rawfile s /dev/stdin \\'{machine:$m, messages: ($s | split(\"\\n\") | map(select(length>0) | fromjson) | map(select(.type==\"assistant\") | .message) | map({message_id:.id, model:.model, input_tokens:.usage.input_tokens, cache_creation_input_tokens:.usage.cache_creation_input_tokens, cache_read_input_tokens:.usage.cache_read_input_tokens, output_tokens:.usage.output_tokens, ts:now}))}\\')\" > /dev/null'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+3. Claude Code 세션 재시작. 다음 어시스턴트 턴부터 푸시됩니다.
+
+> **주의.** 훅은 `curl`과 [`jq`](https://stedolan.github.io/jq/)가 `$PATH`에 있어야 동작. macOS는 curl 기본 포함, jq는 `brew install jq`로 설치.
+
+## 검증
+
+```bash
+curl https://your-wigtoken/api/usage/recent?limit=1 \
+  -H "Authorization: Bearer $WIGTOKEN_TOKEN" | jq .
+```
+
+가장 최근 어시스턴트 턴이 올바른 머신 라벨로 보여야 합니다.
+
+## 제약
+
+- 턴당 요청 1개 (배칭 없음)
+- 재시도 없음 — 서버가 잠시 다운되면 그 메시지들은 손실
+- 훅은 Claude Code 내부에서 동기 실행 — 느린 서버는 매 턴 레이턴시를 더함. 네트워크 경로는 빠르게.
