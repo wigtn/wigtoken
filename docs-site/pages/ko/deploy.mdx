@@ -1,0 +1,107 @@
+---
+title: 배포
+---
+
+# 배포
+
+지원하는 4가지 배포 형태. 서버 바이너리는 4가지 모두 동일 — 래퍼와 데이터 디렉토리 마운트 방식만 다릅니다.
+
+## Native (launchd / systemd)
+
+추천 대상: 솔로 / 소규모 팀의 Mac mini나 Linux 박스. 컨테이너 레이어 없음, 최소 footprint.
+
+**macOS (launchd):**
+
+```bash
+git clone https://github.com/wigtn/wigtoken
+cd wigtoken
+npm ci
+npm run build
+sudo cp launchd/com.wigtoken.plist /Library/LaunchDaemons/
+sudo launchctl bootstrap system /Library/LaunchDaemons/com.wigtoken.plist
+```
+
+**Linux (systemd):**
+
+```ini
+# /etc/systemd/system/wigtoken.service
+[Unit]
+Description=wigtoken aggregator
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/wigtoken/dist/index.js
+Environment=PORT=10103
+Environment=STATS_DB_PATH=/var/lib/wigtoken/stats.db
+Restart=on-failure
+RestartSec=2
+User=wigtoken
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now wigtoken
+```
+
+## Docker 단일 컨테이너
+
+```bash
+docker run -d --name wigtoken \
+  -p 10103:10103 \
+  -v wigtoken-data:/data \
+  -v ~/.claude/projects:/projects:ro \
+  -e CLAUDE_PROJECTS_DIR=/projects \
+  -e ALLOWED_ORIGINS="https://your-site.com" \
+  ghcr.io/wigtn/wigtoken:latest
+```
+
+**macOS 주의:** Docker bind mount가 가끔 fsevents를 놓침 — 폴링 fallback (`WATCH_POLLING=true`)이 있지만, Mac mini에서 안정성이 중요하다면 native launchd 배포가 낫습니다.
+
+## Docker Compose
+
+팀 / 조직용. nginx를 통한 TLS 종단처리 포함. 내장 대시보드와 위젯 엔드포인트 자동 포함 — Prometheus/Grafana는 *선택*. [examples/compose](https://github.com/wigtn/wigtoken/tree/main/examples/compose) 참조:
+
+```yaml
+services:
+  wigtoken:
+    image: ghcr.io/wigtn/wigtoken:latest
+    environment:
+      MODE: team
+      ALLOWED_ORIGINS: https://example.com
+    volumes:
+      - wigtoken-data:/data
+
+  nginx:
+    image: nginx:1.27
+    ports: ["443:443"]
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+
+volumes:
+  wigtoken-data:
+```
+
+## Kubernetes
+
+Helm 차트 `oci://ghcr.io/wigtn/charts/wigtoken`:
+
+```bash
+helm install token oci://ghcr.io/wigtn/charts/wigtoken \
+  --set ingress.host=token.example.com \
+  --set persistence.size=5Gi
+```
+
+차트는 `/data` PVC, SQLite 파일 마운트, `serviceMonitor.enabled=true`일 때 Prometheus `ServiceMonitor` 추가까지 자동.
+
+## 트러블슈팅
+
+| 증상 | 가능한 원인 | 해결 |
+| --- | --- | --- |
+| 1시간 후에도 `messages: 0` | watcher가 파일을 못 보고 있음 | `CLAUDE_PROJECTS_DIR`가 실제 `~/.claude/projects/`를 가리키는지 확인 |
+| `/api/admin/*`에서 `403` | bearer 토큰이 없거나 스코프가 잘못됨 | `/setup` 또는 admin API로 재발급 |
+| 위젯에서 `429` | embed origin이 화이트리스트에 없음 | `/admin/embeds`에서 추가 |
+| macOS에서 컨테이너 재시작 루프 | bind mount 위 SQLite WAL | named volume 사용 (`-v wigtoken-data:/data`), bind mount 금지 |

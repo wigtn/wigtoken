@@ -44,6 +44,12 @@ export const pageMap = [{
   children: [{
     data: ko_meta
   }, {
+    name: "deploy",
+    route: "/ko/deploy",
+    frontMatter: {
+      "title": "배포"
+    }
+  }, {
     name: "index",
     route: "/ko",
     frontMatter: {
@@ -54,6 +60,12 @@ export const pageMap = [{
     route: "/ko/quickstart",
     frontMatter: {
       "title": "빠른 시작"
+    }
+  }, {
+    name: "widget",
+    route: "/ko/widget",
+    frontMatter: {
+      "title": "위젯"
     }
   }]
 }, {

@@ -1,0 +1,170 @@
+---
+title: 위젯
+---
+
+import Preview from "../../components/Preview.tsx";
+
+# @wigtoken-temp/widget
+
+어떤 사이트에든 wigtoken 데이터를 임베드할 수 있는 React 컴포넌트 모음. ESM + CJS, 약 43 KB minified, peer-dep는 React 18+.
+
+> 🎨 **라이브 갤러리**: 아래 모든 컴포넌트가 [데모 사이트](/demo/)에서 실시간으로 동작 — 인터랙티브하게 만져본 뒤 여기로 돌아와서 prop을 확인하세요.
+
+```bash
+npm install @wigtoken-temp/widget
+```
+
+## Provider
+
+모든 위젯은 `ProviderConfig`로 감싸야 합니다 — 어느 서버에 쿼리할지, 어떤 토큰으로 인증할지 알기 위해.
+
+```tsx
+import { ProviderConfig } from "@wigtoken-temp/widget";
+
+<ProviderConfig
+  server="https://token.example.com"
+  token="we_…"                // embed 스코프 토큰 (공개 가능)
+  poll={false}                 // 기본 SSE; true → 폴링 fallback
+  pollIntervalMs={2000}        // poll=true 또는 SSE 끊김 시 사용
+>
+  {/* 위젯들 */}
+</ProviderConfig>
+```
+
+| Prop | 타입 | 기본값 | 설명 |
+| --- | --- | --- | --- |
+| `server` | `string` | 필수 | wigtoken 서버 베이스 URL |
+| `token` | `string` | 필수 | embed 스코프 bearer 토큰 |
+| `poll` | `boolean` | `false` | true면 SSE 대신 폴링 |
+| `pollIntervalMs` | `number` | `2000` | 폴링 간격 (fallback 또는 강제) |
+
+---
+
+## 카운터
+
+서버로부터 SSE 이벤트 받을 때마다 슬롯머신처럼 한 자리씩 회전.
+
+<Preview section="counters" height={220} />
+
+```tsx
+<TokenCounter />
+<TokenCounter mode="weighted" />
+<CostCounter />
+<MessageCounter />
+```
+
+| 컴포넌트 | Props |
+| --- | --- |
+| `<TokenCounter />` | `mode?: "raw" \| "weighted"`, `format?: FormatMode`, `size?: Size`, `theme?: Theme` |
+| `<CostCounter />` | `format?: FormatMode`, `currency?: string`, `size?, theme?` |
+| `<WeightedTokenCounter />` | `format?, size?, theme?` — `mode="weighted"` 단축 |
+| `<MessageCounter />` | `format?, size?, theme?` |
+
+---
+
+## Burn Sparkline
+
+라인 차트, 인라인 SVG. 차트 라이브러리 없음.
+
+<Preview section="sparkline" height={180} />
+
+```tsx
+<BurnSparkline range="1h" />
+<BurnSparkline range="24h" />
+<BurnSparkline range="7d" />
+```
+
+| Prop | 타입 | 기본값 |
+| --- | --- | --- |
+| `range` | `"1h" \| "24h" \| "7d" \| "30d"` | `"24h"` |
+| `metric` | `"tokensWeighted" \| "tokensRaw" \| "costUsd" \| "messages"` | `"tokensWeighted"` |
+| `size`, `theme`, `width` | — | — |
+
+---
+
+## 리더보드
+
+유저 / 모델 패밀리 / 머신별 Top-N.
+
+<Preview section="rankings" height={300} />
+
+```tsx
+<TopUsers limit={5} />
+<TopModels limit={5} />
+<TopMachines limit={5} />
+```
+
+---
+
+## 활동
+
+<Preview section="activity" height={280} />
+
+```tsx
+<RecentActivity limit={6} />
+<LiveTicker />
+```
+
+`RecentActivity`는 폴링 (provider가 SSE 모드면 SSE도). `LiveTicker`는 SSE 전용 — 새 메시지가 위에서 슬라이드 다운.
+
+---
+
+## 상태 & 범례
+
+<Preview section="status" height={200} />
+
+```tsx
+<EmbedPulseDot size={6} />
+<EmbedPulseDot size={10} />
+<EmbedPulseDot size={14} withLabel />
+<ModelLegend />
+```
+
+---
+
+## 레이아웃
+
+<Preview section="layout" height={220} />
+
+```tsx
+<StatGrid>
+  <MetricCard label="Today" value="12,418" sub="+8%" />
+  <MetricCard label="This week" value="68,201" sub="+22%" />
+  <MetricCard label="This month" value="284,910" sub="+11%" />
+  <MetricCard label="All time" value="1.2M" />
+</StatGrid>
+```
+
+---
+
+## 히어로 조합
+
+전부 합쳤을 때 — 실제 마케팅 페이지 히어로가 이런 느낌.
+
+<Preview section="hero" height={500} />
+
+## 테마
+
+`theme` prop 또는 CSS 커스텀 프로퍼티 override:
+
+```css
+:root {
+  --wigtoken-accent: #b794f4;
+  --wigtoken-fg: #f5f5f5;
+  --wigtoken-muted: #71717a;
+  --wigtoken-glow: rgba(167, 139, 250, 0.35);
+  --wigtoken-gradient: linear-gradient(135deg, #b794f4 0%, #f472b6 100%);
+}
+```
+
+지원 테마: `purple`, `teal`, `amber`, `cyan`, `rose`, `mono`, `auto`.
+
+## SSE & 오프라인
+
+Provider는 `/embed/stream` SSE 연결 하나로 모든 consumer에 fan-out. SSE 실패 시 (프록시 버퍼링, captive portal) `pollIntervalMs` 간격으로 폴링 fallback. 재연결은 exponential backoff, 최대 60s.
+
+## 관련 페이지
+
+- [라이브 데모](/demo/)
+- [API 레퍼런스](/api-reference)
+- [셀프 호스팅](/self-host#embedding-on-a-public-site)
