@@ -1,0 +1,109 @@
+{
+  "brand": {
+    "name": "wigtoken",
+    "tagline": "オペレーターダッシュボード"
+  },
+  "nav": {
+    "overview": "概要",
+    "users": "ユーザー",
+    "models": "モデル",
+    "machines": "マシン",
+    "timeseries": "時系列",
+    "sessions": "セッション",
+    "admin": "管理者",
+    "tokens": "トークン",
+    "embeds": "埋め込み",
+    "audit": "監査ログ"
+  },
+  "tokenGate": {
+    "title": "管理者トークン",
+    "placeholder": "wts_…",
+    "save": "保存",
+    "clear": "クリア",
+    "hint": "/admin/* と書き込み操作に必要です。"
+  },
+  "overview": {
+    "title": "概要",
+    "totalTokens": "合計トークン (重み付き)",
+    "totalMessages": "メッセージ",
+    "estimatedCost": "推定コスト",
+    "since": "最初のメッセージから"
+  },
+  "models": {
+    "title": "モデル",
+    "name": "名前",
+    "family": "ファミリー",
+    "tokens": "トークン",
+    "cost": "コスト",
+    "messages": "メッセージ"
+  },
+  "users": {
+    "title": "ユーザー",
+    "name": "名前",
+    "machines": "マシン",
+    "tokens": "トークン",
+    "cost": "コスト"
+  },
+  "machines": { "title": "マシン" },
+  "timeseries": { "title": "時系列" },
+  "sessions": { "title": "セッション" },
+  "admin": {
+    "tokens": {
+      "title": "トークン",
+      "issue": "トークンを発行",
+      "scope": "スコープ",
+      "label": "ラベル",
+      "user": "ユーザー",
+      "createdAt": "作成日",
+      "lastUsed": "最終使用",
+      "revoke": "失効"
+    },
+    "embeds": {
+      "title": "埋め込みオリジン",
+      "origin": "オリジン",
+      "add": "オリジンを追加",
+      "remove": "削除"
+    },
+    "audit": {
+      "title": "監査ログ",
+      "ts": "時刻",
+      "action": "アクション",
+      "user": "ユーザー",
+      "ip": "IP"
+    }
+  },
+  "setup": {
+    "title": "セットアップ",
+    "subtitle": "シナリオを選ぶと、デフォルトを最適化します。",
+    "next": "次へ",
+    "back": "戻る",
+    "finish": "完了",
+    "step": {
+      "scenario": "シナリオ",
+      "infra": "インフラ",
+      "token": "管理者トークン",
+      "embed": "埋め込みオリジン"
+    },
+    "scenario": {
+      "solo": {
+        "title": "ソロ",
+        "blurb": "開発者1人、マシン1台。個人用トラッカー。"
+      },
+      "team": {
+        "title": "チーム",
+        "blurb": "2〜20人の開発者、共有ダッシュボード。"
+      },
+      "org": {
+        "title": "組織",
+        "blurb": "20人以上、複数マシン。"
+      }
+    }
+  },
+  "common": {
+    "noData": "データなし",
+    "loading": "読み込み中…",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "language": "言語"
+  }
+}

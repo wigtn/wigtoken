@@ -1,0 +1,115 @@
+{
+  "brand": {
+    "name": "wigtoken",
+    "tagline": "오퍼레이터 대시보드"
+  },
+  "nav": {
+    "overview": "개요",
+    "users": "사용자",
+    "models": "모델",
+    "machines": "머신",
+    "timeseries": "시계열",
+    "sessions": "세션",
+    "admin": "관리자",
+    "tokens": "토큰",
+    "embeds": "임베드",
+    "audit": "감사 로그"
+  },
+  "tokenGate": {
+    "title": "관리자 토큰",
+    "placeholder": "wts_…",
+    "save": "저장",
+    "clear": "지우기",
+    "hint": "/admin/* 및 쓰기 액션에 필요합니다."
+  },
+  "overview": {
+    "title": "개요",
+    "totalTokens": "전체 토큰 (가중)",
+    "totalMessages": "메시지",
+    "estimatedCost": "예상 비용",
+    "since": "첫 메시지 이후"
+  },
+  "models": {
+    "title": "모델",
+    "name": "이름",
+    "family": "패밀리",
+    "tokens": "토큰",
+    "cost": "비용",
+    "messages": "메시지"
+  },
+  "users": {
+    "title": "사용자",
+    "name": "이름",
+    "machines": "머신",
+    "tokens": "토큰",
+    "cost": "비용"
+  },
+  "machines": {
+    "title": "머신"
+  },
+  "timeseries": {
+    "title": "시계열"
+  },
+  "sessions": {
+    "title": "세션"
+  },
+  "admin": {
+    "tokens": {
+      "title": "토큰",
+      "issue": "토큰 발급",
+      "scope": "스코프",
+      "label": "라벨",
+      "user": "사용자",
+      "createdAt": "생성일",
+      "lastUsed": "마지막 사용",
+      "revoke": "폐기"
+    },
+    "embeds": {
+      "title": "임베드 오리진",
+      "origin": "오리진",
+      "add": "오리진 추가",
+      "remove": "제거"
+    },
+    "audit": {
+      "title": "감사 로그",
+      "ts": "시각",
+      "action": "액션",
+      "user": "사용자",
+      "ip": "IP"
+    }
+  },
+  "setup": {
+    "title": "설정",
+    "subtitle": "시나리오를 선택하면 기본값을 자동 세팅해드립니다.",
+    "next": "다음",
+    "back": "이전",
+    "finish": "완료",
+    "step": {
+      "scenario": "시나리오",
+      "infra": "인프라",
+      "token": "관리자 토큰",
+      "embed": "임베드 오리진"
+    },
+    "scenario": {
+      "solo": {
+        "title": "솔로",
+        "blurb": "개발자 한 명, 머신 한 대. 개인용 사용량 추적기."
+      },
+      "team": {
+        "title": "팀",
+        "blurb": "2~20명 개발자, 공유 대시보드."
+      },
+      "org": {
+        "title": "조직",
+        "blurb": "20명 이상, 여러 머신."
+      }
+    }
+  },
+  "common": {
+    "noData": "데이터 없음",
+    "loading": "불러오는 중…",
+    "save": "저장",
+    "cancel": "취소",
+    "language": "언어"
+  }
+}

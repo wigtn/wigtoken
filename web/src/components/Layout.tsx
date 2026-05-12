@@ -1,47 +1,56 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import TokenGate from "./TokenGate";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 interface NavItem {
   to: string;
-  label: string;
+  /** Translation key under `nav.*` */
+  labelKey: string;
   section?: "main" | "admin";
 }
 
 const NAV: NavItem[] = [
-  { to: "/", label: "Overview", section: "main" },
-  { to: "/users", label: "Users", section: "main" },
-  { to: "/models", label: "Models", section: "main" },
-  { to: "/machines", label: "Machines", section: "main" },
-  { to: "/timeseries", label: "Timeseries", section: "main" },
-  { to: "/sessions", label: "Sessions", section: "main" },
-  { to: "/admin/tokens", label: "Tokens", section: "admin" },
-  { to: "/admin/embeds", label: "Embeds", section: "admin" },
-  { to: "/admin/audit", label: "Audit", section: "admin" },
+  { to: "/", labelKey: "overview", section: "main" },
+  { to: "/users", labelKey: "users", section: "main" },
+  { to: "/models", labelKey: "models", section: "main" },
+  { to: "/machines", labelKey: "machines", section: "main" },
+  { to: "/timeseries", labelKey: "timeseries", section: "main" },
+  { to: "/sessions", labelKey: "sessions", section: "main" },
+  { to: "/admin/tokens", labelKey: "tokens", section: "admin" },
+  { to: "/admin/embeds", labelKey: "embeds", section: "admin" },
+  { to: "/admin/audit", labelKey: "audit", section: "admin" },
 ];
 
 export default function Layout() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen flex">
-      <aside className="w-56 shrink-0 border-r border-neutral-900 bg-neutral-950/80 px-4 py-6">
+      <aside className="w-56 shrink-0 border-r border-neutral-900 bg-neutral-950/80 px-4 py-6 flex flex-col">
         <div className="px-2 mb-6 flex items-center gap-2">
           <div className="h-7 w-7 rounded-md bg-gradient-to-br from-accent to-accent-fg" />
           <div>
-            <div className="text-sm font-semibold">wigtoken</div>
+            <div className="text-sm font-semibold">{t("brand.name")}</div>
             <div className="text-[10px] uppercase tracking-wider text-neutral-500">
-              operator dashboard
+              {t("brand.tagline")}
             </div>
           </div>
         </div>
 
-        <NavSection title="" items={NAV.filter((n) => n.section === "main")} />
+        <NavSection items={NAV.filter((n) => n.section === "main")} />
         <div className="mt-6">
           <NavSection
-            title="admin"
+            title={t("nav.admin")}
             items={NAV.filter((n) => n.section === "admin")}
           />
         </div>
-        <div className="mt-8 border-t border-neutral-900 pt-4">
-          <TokenGate />
+        <div className="mt-auto pt-4">
+          <div className="border-t border-neutral-900 pt-4">
+            <TokenGate />
+          </div>
+          <div className="mt-4">
+            <LanguageSwitcher />
+          </div>
         </div>
       </aside>
 
@@ -52,7 +61,8 @@ export default function Layout() {
   );
 }
 
-function NavSection({ title, items }: { title: string; items: NavItem[] }) {
+function NavSection({ title, items }: { title?: string; items: NavItem[] }) {
+  const { t } = useTranslation();
   return (
     <div>
       {title && (
@@ -74,7 +84,7 @@ function NavSection({ title, items }: { title: string; items: NavItem[] }) {
               }`
             }
           >
-            {item.label}
+            {t(`nav.${item.labelKey}`)}
           </NavLink>
         ))}
       </nav>

@@ -1,0 +1,115 @@
+{
+  "brand": {
+    "name": "wigtoken",
+    "tagline": "operator dashboard"
+  },
+  "nav": {
+    "overview": "Overview",
+    "users": "Users",
+    "models": "Models",
+    "machines": "Machines",
+    "timeseries": "Timeseries",
+    "sessions": "Sessions",
+    "admin": "admin",
+    "tokens": "Tokens",
+    "embeds": "Embeds",
+    "audit": "Audit"
+  },
+  "tokenGate": {
+    "title": "Admin token",
+    "placeholder": "wts_…",
+    "save": "Save",
+    "clear": "Clear",
+    "hint": "Required for /admin/* and write actions."
+  },
+  "overview": {
+    "title": "Overview",
+    "totalTokens": "Total tokens (weighted)",
+    "totalMessages": "Messages",
+    "estimatedCost": "Estimated cost",
+    "since": "Since first message"
+  },
+  "models": {
+    "title": "Models",
+    "name": "Name",
+    "family": "Family",
+    "tokens": "Tokens",
+    "cost": "Cost",
+    "messages": "Messages"
+  },
+  "users": {
+    "title": "Users",
+    "name": "Name",
+    "machines": "Machines",
+    "tokens": "Tokens",
+    "cost": "Cost"
+  },
+  "machines": {
+    "title": "Machines"
+  },
+  "timeseries": {
+    "title": "Timeseries"
+  },
+  "sessions": {
+    "title": "Sessions"
+  },
+  "admin": {
+    "tokens": {
+      "title": "Tokens",
+      "issue": "Issue token",
+      "scope": "Scope",
+      "label": "Label",
+      "user": "User",
+      "createdAt": "Created",
+      "lastUsed": "Last used",
+      "revoke": "Revoke"
+    },
+    "embeds": {
+      "title": "Embed origins",
+      "origin": "Origin",
+      "add": "Add origin",
+      "remove": "Remove"
+    },
+    "audit": {
+      "title": "Audit log",
+      "ts": "When",
+      "action": "Action",
+      "user": "User",
+      "ip": "IP"
+    }
+  },
+  "setup": {
+    "title": "Setup",
+    "subtitle": "Pick a scenario and we'll tune the defaults for you.",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Finish",
+    "step": {
+      "scenario": "Scenario",
+      "infra": "Infrastructure",
+      "token": "Admin token",
+      "embed": "Embed origin"
+    },
+    "scenario": {
+      "solo": {
+        "title": "Solo",
+        "blurb": "One developer, one machine. Personal usage tracker."
+      },
+      "team": {
+        "title": "Team",
+        "blurb": "2–20 developers, shared dashboard."
+      },
+      "org": {
+        "title": "Organization",
+        "blurb": "20+ developers, multiple machines."
+      }
+    }
+  },
+  "common": {
+    "noData": "no data",
+    "loading": "loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "language": "Language"
+  }
+}
