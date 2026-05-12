@@ -5,6 +5,7 @@ title: Introduction
 import Hero from "../components/Hero.tsx";
 import FeatureGrid from "../components/FeatureGrid.tsx";
 import Preview from "../components/Preview.tsx";
+import Playground from "../components/Playground.tsx";
 
 <Hero
   eyebrow="v0.2 · self-hosted"
@@ -56,7 +57,7 @@ import Preview from "../components/Preview.tsx";
 
 The whole widget package, embedded right here. This is the same `@wigtoken-temp/widget` you'd install — running against an in-page mock backend so you can poke at it without a server.
 
-<Preview section="hero" height={520} />
+<Playground />
 
 ```tsx
 import { ProviderConfig, WeightedTokenCounter, CostCounter, BurnSparkline } from "@wigtoken-temp/widget";

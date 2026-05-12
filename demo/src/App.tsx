@@ -29,23 +29,96 @@ const DEFAULT_CONFIG: Config = {
 };
 
 /**
+ * Theme presets — each value is a set of CSS custom properties the
+ * widget reads when its `theme` prop is "auto" (the default). We
+ * apply them on the demo wrapper so every widget below picks up the
+ * palette without each prop being threaded through.
+ */
+const THEME_VAR_MAP: Record<
+  Config["theme"],
+  Partial<Record<
+    | "--wigtoken-accent"
+    | "--wigtoken-fg"
+    | "--wigtoken-muted"
+    | "--wigtoken-surface"
+    | "--wigtoken-border"
+    | "--wigtoken-glow"
+    | "--wigtoken-gradient",
+    string
+  >>
+> = {
+  purple: {
+    "--wigtoken-accent": "#a78bfa",
+    "--wigtoken-fg": "#f5f3ff",
+    "--wigtoken-muted": "#a3a3a3",
+    "--wigtoken-surface": "rgba(124, 58, 237, 0.04)",
+    "--wigtoken-border": "rgba(167, 139, 250, 0.15)",
+    "--wigtoken-glow": "rgba(167, 139, 250, 0.35)",
+    "--wigtoken-gradient": "linear-gradient(135deg, #a78bfa 0%, #f472b6 100%)",
+  },
+  teal: {
+    "--wigtoken-accent": "#5eead4",
+    "--wigtoken-fg": "#ecfeff",
+    "--wigtoken-muted": "#94a3b8",
+    "--wigtoken-surface": "rgba(13, 148, 136, 0.04)",
+    "--wigtoken-border": "rgba(94, 234, 212, 0.15)",
+    "--wigtoken-glow": "rgba(94, 234, 212, 0.35)",
+    "--wigtoken-gradient": "linear-gradient(135deg, #5eead4 0%, #38bdf8 100%)",
+  },
+  amber: {
+    "--wigtoken-accent": "#fbbf24",
+    "--wigtoken-fg": "#fefce8",
+    "--wigtoken-muted": "#a8a29e",
+    "--wigtoken-surface": "rgba(217, 119, 6, 0.04)",
+    "--wigtoken-border": "rgba(251, 191, 36, 0.15)",
+    "--wigtoken-glow": "rgba(251, 191, 36, 0.35)",
+    "--wigtoken-gradient": "linear-gradient(135deg, #fbbf24 0%, #f97316 100%)",
+  },
+  mono: {
+    "--wigtoken-accent": "#a3a3a3",
+    "--wigtoken-fg": "#fafafa",
+    "--wigtoken-muted": "#737373",
+    "--wigtoken-surface": "rgba(115, 115, 115, 0.04)",
+    "--wigtoken-border": "rgba(163, 163, 163, 0.15)",
+    "--wigtoken-glow": "rgba(163, 163, 163, 0.25)",
+    "--wigtoken-gradient": "linear-gradient(135deg, #d4d4d4 0%, #737373 100%)",
+  },
+  auto: {},
+};
+
+/**
  * When the URL has ?focus=<section-id>, we render in "embed mode":
  * no header, no ConfigBar, no footer, no Section chrome — just the
  * matching component group. Used by the docs site to inline live
  * previews per section without iframing the whole showcase.
+ *
+ * `?theme=<id>` also overrides the default theme when supplied, so
+ * the docs Playground can swap themes via URL.
  */
-function useFocus(): string | null {
-  if (typeof window === "undefined") return null;
-  return new URLSearchParams(window.location.search).get("focus");
+function useUrlParams() {
+  if (typeof window === "undefined") return { focus: null, theme: null };
+  const sp = new URLSearchParams(window.location.search);
+  return {
+    focus: sp.get("focus"),
+    theme: sp.get("theme") as Config["theme"] | null,
+  };
 }
 
 export default function App() {
-  const [cfg, setCfg] = useState<Config>(DEFAULT_CONFIG);
-  const focus = useFocus();
+  const params = useUrlParams();
+  const [cfg, setCfg] = useState<Config>(() => ({
+    ...DEFAULT_CONFIG,
+    theme: params.theme ?? DEFAULT_CONFIG.theme,
+  }));
+  const focus = params.focus;
   const embed = focus !== null;
 
+  const themeVars = THEME_VAR_MAP[cfg.theme] ?? {};
   return (
-    <div className={embed ? "p-4" : "min-h-screen"}>
+    <div
+      className={embed ? "p-4" : "min-h-screen"}
+      style={themeVars as React.CSSProperties}
+    >
       {!embed && (
         <header className="border-b border-neutral-900 px-8 py-5">
           <div className="mx-auto max-w-6xl flex items-center justify-between">

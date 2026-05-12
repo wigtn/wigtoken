@@ -26,8 +26,15 @@ export interface Storage {
  *
  * Accepts either a bare file path (legacy v0.1.x — implied sqlite) or
  * a full DbConfig object. Postgres / MySQL backends are scaffolded but
- * will land in the next release — they throw a clear error today so
- * operators don't accidentally point production at a TODO impl.
+ * will land in the next release.
+ *
+ * Phase 2c context: making this async-uniform across all three engines
+ * requires propagating awaits through scanner.ts (which uses
+ * synchronous better-sqlite3 transactions) and server.ts (~44 call
+ * sites). That migration is intentionally scoped to its own focused
+ * release. For now SQLite stays sync; the PG/MySQL paths surface a
+ * clear error so operators don't accidentally point production at a
+ * TODO impl.
  */
 export function openStorage(input: string | DbConfig): Storage {
   const cfg: DbConfig =
@@ -40,7 +47,6 @@ export function openStorage(input: string | DbConfig): Storage {
     );
   }
 
-  // sqlite path — same shape as v0.1.x.
   mkdirSync(dirname(cfg.url), { recursive: true });
   const db = new Database(cfg.url);
   db.pragma("journal_mode = WAL");
