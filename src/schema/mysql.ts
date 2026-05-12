@@ -28,8 +28,11 @@ export const messages = mysqlTable(
     cacheCreation: bigint("cache_creation", { mode: "number" }).notNull().default(0),
     cacheRead: bigint("cache_read", { mode: "number" }).notNull().default(0),
     outputTokens: bigint("output_tokens", { mode: "number" }).notNull().default(0),
+    costUsdMicros: bigint("cost_usd_micros", { mode: "number" }).notNull().default(0),
+    weightedInputEq: bigint("weighted_input_eq", { mode: "number" }).notNull().default(0),
     costUsd: double("cost_usd").notNull().default(0),
     ts: bigint("ts", { mode: "number" }).notNull(),
+    ingestedAt: bigint("ingested_at", { mode: "number" }).notNull(),
   },
   (t) => ({
     tsIdx: index("idx_messages_ts").on(t.ts),

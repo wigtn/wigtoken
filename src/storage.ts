@@ -190,10 +190,8 @@ export async function openStorage(input: string | DbConfig): Promise<Storage> {
   }
 
   if (cfg.kind === "mysql") {
-    throw new Error(
-      `wigtoken: mysql backend is not implemented yet (coming in v0.3.x). ` +
-        `Set DB_URL to a sqlite path or a postgres:// URL.`
-    );
+    const { openMysqlStorage } = await import("./storage-mysql.ts");
+    return openMysqlStorage(cfg.url);
   }
 
   mkdirSync(dirname(cfg.url), { recursive: true });
