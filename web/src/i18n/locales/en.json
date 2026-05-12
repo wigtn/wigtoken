@@ -44,15 +44,9 @@
     "tokens": "Tokens",
     "cost": "Cost"
   },
-  "machines": {
-    "title": "Machines"
-  },
-  "timeseries": {
-    "title": "Timeseries"
-  },
-  "sessions": {
-    "title": "Sessions"
-  },
+  "machines": { "title": "Machines" },
+  "timeseries": { "title": "Timeseries" },
+  "sessions": { "title": "Sessions" },
   "admin": {
     "tokens": {
       "title": "Tokens",
@@ -79,11 +73,13 @@
     }
   },
   "setup": {
-    "title": "Setup",
-    "subtitle": "Pick a scenario and we'll tune the defaults for you.",
+    "title": "setup wizard",
     "next": "Next",
     "back": "Back",
-    "finish": "Finish",
+    "finish": "Finish setup",
+    "finishing": "Finalising…",
+    "alreadyComplete": "Setup is already marked complete. Re-running the wizard will overwrite scenario / infra labels and add a fresh embed origin, but won't touch existing tokens or data.",
+    "persisted": "Configuration is stored in the local database. You can re-run this wizard any time by hitting",
     "step": {
       "scenario": "Scenario",
       "infra": "Infrastructure",
@@ -91,18 +87,57 @@
       "embed": "Embed origin"
     },
     "scenario": {
+      "pickTitle": "Pick a deployment scenario",
+      "pickHint": "We tune defaults and infra suggestions based on this choice. You can change it later under /admin.",
       "solo": {
         "title": "Solo",
         "blurb": "One developer, one machine. Personal usage tracker."
       },
       "team": {
         "title": "Team",
-        "blurb": "2–20 developers, shared dashboard."
+        "blurb": "2–20 developers, shared dashboard. Embed widget on the team site."
       },
       "org": {
-        "title": "Organization",
-        "blurb": "20+ developers, multiple machines."
+        "title": "Organisation",
+        "blurb": "20+ developers, multiple machines, central aggregation."
       }
+    },
+    "infra": {
+      "pickTitle": "Pick an infra layout",
+      "pickHint": "Recommended options for {{scenario}} are marked. This only affects which deploy guide the dashboard links to — the server runs identically across all options.",
+      "recommended": "recommended",
+      "native-launchd": {
+        "title": "Native (launchd / systemd)",
+        "blurb": "Runs as a system service. No container layer. Lightest footprint."
+      },
+      "docker-single": {
+        "title": "Docker (single container)",
+        "blurb": "One container with bind-mounted ~/.claude/projects."
+      },
+      "docker-compose": {
+        "title": "Docker Compose",
+        "blurb": "Server + nginx in one stack. Built-in dashboard included."
+      },
+      "kubernetes": {
+        "title": "Kubernetes",
+        "blurb": "Helm chart, persistent volume for SQLite. For larger orgs."
+      },
+      "headless": {
+        "title": "Headless (ingest only)",
+        "blurb": "No dashboard SPA. Ingest + embed widget endpoints only."
+      }
+    },
+    "token": {
+      "title": "Paste the bootstrap admin token",
+      "hint": "On first launch the server prints a one-time admin token to its log. Paste it here so the wizard can call admin-scoped endpoints and we can store it in this browser. (You can rotate it later via /admin/tokens.)",
+      "placeholder": "wt_admin_…",
+      "whereToFind": "Where to find it"
+    },
+    "embed": {
+      "title": "Add an embed origin",
+      "optional": "optional",
+      "hint": "If you plan to embed the widget on a public site (marketing page, team about-page), whitelist the origin now. You can manage origins later under /admin/embeds.",
+      "hintBlank": "Leave blank to skip — the widget will still work from same-origin pages (your own dashboard)."
     }
   },
   "common": {

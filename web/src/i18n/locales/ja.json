@@ -1,8 +1,5 @@
 {
-  "brand": {
-    "name": "wigtoken",
-    "tagline": "オペレーターダッシュボード"
-  },
+  "brand": { "name": "wigtoken", "tagline": "オペレーターダッシュボード" },
   "nav": {
     "overview": "概要",
     "users": "ユーザー",
@@ -73,11 +70,13 @@
     }
   },
   "setup": {
-    "title": "セットアップ",
-    "subtitle": "シナリオを選ぶと、デフォルトを最適化します。",
+    "title": "セットアップウィザード",
     "next": "次へ",
     "back": "戻る",
-    "finish": "完了",
+    "finish": "セットアップ完了",
+    "finishing": "完了中…",
+    "alreadyComplete": "すでにセットアップ済みです。再実行するとシナリオ/インフラのラベルと埋め込みオリジンが上書きされますが、既存のトークンとデータには影響しません。",
+    "persisted": "設定はローカルのデータベースに保存されます。いつでもこのパスでウィザードを再実行できます —",
     "step": {
       "scenario": "シナリオ",
       "infra": "インフラ",
@@ -85,18 +84,48 @@
       "embed": "埋め込みオリジン"
     },
     "scenario": {
-      "solo": {
-        "title": "ソロ",
-        "blurb": "開発者1人、マシン1台。個人用トラッカー。"
+      "pickTitle": "デプロイシナリオを選んでください",
+      "pickHint": "選択に応じてデフォルトとインフラ推奨が調整されます。あとで /admin から変更できます。",
+      "solo": { "title": "ソロ", "blurb": "開発者 1 人、マシン 1 台。個人用トラッカー。" },
+      "team": { "title": "チーム", "blurb": "2〜20 人、共有ダッシュボード。チームサイトに埋め込み。" },
+      "org": { "title": "組織", "blurb": "20 人以上、複数マシン、集中集計。" }
+    },
+    "infra": {
+      "pickTitle": "インフラレイアウトを選んでください",
+      "pickHint": "{{scenario}} におすすめのオプションが表示されます。サーバーの動作はどのオプションでも同一です — ダッシュボードがどのデプロイガイドにリンクするかにのみ影響します。",
+      "recommended": "推奨",
+      "native-launchd": {
+        "title": "Native (launchd / systemd)",
+        "blurb": "システムサービスとして起動。コンテナレイヤなし。最軽量。"
       },
-      "team": {
-        "title": "チーム",
-        "blurb": "2〜20人の開発者、共有ダッシュボード。"
+      "docker-single": {
+        "title": "Docker (単一コンテナ)",
+        "blurb": "~/.claude/projects をバインドマウントした 1 つのコンテナ。"
       },
-      "org": {
-        "title": "組織",
-        "blurb": "20人以上、複数マシン。"
+      "docker-compose": {
+        "title": "Docker Compose",
+        "blurb": "サーバー + nginx を 1 スタックで。ダッシュボード同梱。"
+      },
+      "kubernetes": {
+        "title": "Kubernetes",
+        "blurb": "Helm チャート、SQLite 用 PV。大規模組織向け。"
+      },
+      "headless": {
+        "title": "Headless (ingest のみ)",
+        "blurb": "ダッシュボード SPA なし。ingest + 埋め込みエンドポイントのみ。"
       }
+    },
+    "token": {
+      "title": "ブートストラップ管理者トークンを貼り付け",
+      "hint": "初回起動時にサーバーがワンタイム管理者トークンをログに出力します。ウィザードが管理者エンドポイントを呼び出し、このブラウザに保存できるよう貼り付けてください。(/admin/tokens でローテーション可能)",
+      "placeholder": "wt_admin_…",
+      "whereToFind": "場所"
+    },
+    "embed": {
+      "title": "埋め込みオリジンを追加",
+      "optional": "任意",
+      "hint": "公開サイト (マーケティング、チーム紹介など) にウィジェットを埋め込む予定なら、いまオリジンをホワイトリスト登録してください。あとで /admin/embeds から管理できます。",
+      "hintBlank": "空欄でスキップ — 同一オリジン (自分のダッシュボード) ではそのまま動作します。"
     }
   },
   "common": {

@@ -1,6 +1,6 @@
 {
   "name": "@wigtoken-temp/wigtoken",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Self-host aggregator for Claude Code token usage. Watches transcripts and exposes a real-time SSE counter, a Prometheus /metrics endpoint, and an authenticated ingestion API for distributed agents.",
   "type": "module",
   "license": "MIT",

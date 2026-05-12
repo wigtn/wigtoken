@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { setup, setToken, getToken } from "../api/client.ts";
 import { admin as adminApi, ApiError } from "../api/client.ts";
 
@@ -11,59 +12,23 @@ type Infra =
   | "kubernetes"
   | "headless";
 
-interface ScenarioMeta {
-  id: Scenario;
-  title: string;
-  blurb: string;
-  recommendsInfra: Infra[];
-}
-
-const SCENARIOS: ScenarioMeta[] = [
-  {
-    id: "solo",
-    title: "Solo",
-    blurb: "One developer, one machine. Personal usage tracker.",
-    recommendsInfra: ["native-launchd", "docker-single"],
-  },
-  {
-    id: "team",
-    title: "Team",
-    blurb: "2–20 developers, shared dashboard. Embed widget on team site.",
-    recommendsInfra: ["native-launchd", "docker-compose"],
-  },
-  {
-    id: "org",
-    title: "Organisation",
-    blurb: "20+ developers, multiple machines, central aggregation.",
-    recommendsInfra: ["docker-compose", "kubernetes"],
-  },
+const SCENARIO_ORDER: Scenario[] = ["solo", "team", "org"];
+const INFRA_ORDER: Infra[] = [
+  "native-launchd",
+  "docker-single",
+  "docker-compose",
+  "kubernetes",
+  "headless",
 ];
-
-const INFRA: Record<Infra, { title: string; blurb: string }> = {
-  "native-launchd": {
-    title: "Native (launchd / systemd)",
-    blurb: "Runs as a system service. No container layer. Lightest footprint.",
-  },
-  "docker-single": {
-    title: "Docker (single container)",
-    blurb: "One container with bind-mounted ~/.claude/projects.",
-  },
-  "docker-compose": {
-    title: "Docker Compose",
-    blurb: "Server + nginx in one stack. Built-in dashboard included.",
-  },
-  kubernetes: {
-    title: "Kubernetes",
-    blurb: "Helm chart, persistent volume for SQLite. For larger orgs.",
-  },
-  headless: {
-    title: "Headless (ingest only)",
-    blurb: "No dashboard SPA. Ingest + embed widget endpoints only.",
-  },
+const RECOMMENDED_INFRA: Record<Scenario, Infra[]> = {
+  solo: ["native-launchd", "docker-single"],
+  team: ["native-launchd", "docker-compose"],
+  org: ["docker-compose", "kubernetes"],
 };
 
 export default function Setup() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [infra, setInfra] = useState<Infra | null>(null);
@@ -100,7 +65,6 @@ export default function Setup() {
             label: "added via setup wizard",
           });
         } catch (err) {
-          // non-fatal: user can add origins later
           console.warn("embed origin add failed:", err);
         }
       }
@@ -123,9 +87,9 @@ export default function Setup() {
         <div className="mb-8 flex items-center gap-3">
           <div className="h-8 w-8 rounded-md bg-gradient-to-br from-accent to-accent-fg" />
           <div>
-            <div className="text-base font-semibold">wigtoken</div>
+            <div className="text-base font-semibold">{t("brand.name")}</div>
             <div className="text-xs uppercase tracking-wider text-neutral-500">
-              setup wizard
+              {t("setup.title")}
             </div>
           </div>
         </div>
@@ -134,9 +98,7 @@ export default function Setup() {
 
         {initialStatus?.complete && (
           <div className="mb-6 rounded-md border border-amber-700/40 bg-amber-900/20 px-4 py-3 text-sm text-amber-200">
-            Setup is already marked complete. Re-running the wizard will
-            overwrite scenario / infra labels and add a fresh embed origin,
-            but won't touch existing tokens or data.
+            {t("setup.alreadyComplete")}
           </div>
         )}
 
@@ -152,16 +114,10 @@ export default function Setup() {
             />
           )}
           {step === 3 && (
-            <StepBootstrap
-              value={bootstrap}
-              onChange={setBootstrap}
-            />
+            <StepBootstrap value={bootstrap} onChange={setBootstrap} />
           )}
           {step === 4 && (
-            <StepEmbed
-              value={embedOrigin}
-              onChange={setEmbedOrigin}
-            />
+            <StepEmbed value={embedOrigin} onChange={setEmbedOrigin} />
           )}
 
           {error && (
@@ -177,7 +133,7 @@ export default function Setup() {
               disabled={step === 1 || submitting}
               onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3 | 4) : s))}
             >
-              ← Back
+              ← {t("setup.back")}
             </button>
             {step < 4 ? (
               <button
@@ -186,7 +142,7 @@ export default function Setup() {
                 disabled={!canNext}
                 onClick={() => setStep((s) => ((s + 1) as 1 | 2 | 3 | 4))}
               >
-                Next →
+                {t("setup.next")} →
               </button>
             ) : (
               <button
@@ -195,16 +151,14 @@ export default function Setup() {
                 disabled={submitting || !scenario || !infra || !bootstrap.trim()}
                 onClick={handleFinish}
               >
-                {submitting ? "Finalising…" : "Finish setup"}
+                {submitting ? t("setup.finishing") : t("setup.finish")}
               </button>
             )}
           </div>
         </div>
 
         <div className="mt-6 text-center text-xs text-neutral-500">
-          Configuration is stored in the local SQLite database. You can re-run
-          this wizard any time by hitting{" "}
-          <code className="text-neutral-300">/setup</code>.
+          {t("setup.persisted")} <code className="text-neutral-300">/setup</code>.
         </div>
       </div>
     </div>
@@ -212,15 +166,21 @@ export default function Setup() {
 }
 
 function Steps({ current }: { current: 1 | 2 | 3 | 4 }) {
-  const labels = ["Scenario", "Infra", "Admin token", "Embed origin"];
+  const { t } = useTranslation();
+  const keys = [
+    "setup.step.scenario",
+    "setup.step.infra",
+    "setup.step.token",
+    "setup.step.embed",
+  ];
   return (
     <div className="mb-6 flex items-center gap-2">
-      {labels.map((l, i) => {
+      {keys.map((k, i) => {
         const n = (i + 1) as 1 | 2 | 3 | 4;
         const active = n === current;
         const done = n < current;
         return (
-          <div key={l} className="flex flex-1 items-center gap-2">
+          <div key={k} className="flex flex-1 items-center gap-2">
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                 active
@@ -233,13 +193,11 @@ function Steps({ current }: { current: 1 | 2 | 3 | 4 }) {
               {done ? "✓" : n}
             </div>
             <div
-              className={`text-xs ${
-                active ? "text-neutral-100" : "text-neutral-500"
-              }`}
+              className={`text-xs ${active ? "text-neutral-100" : "text-neutral-500"}`}
             >
-              {l}
+              {t(k)}
             </div>
-            {i < labels.length - 1 && (
+            {i < keys.length - 1 && (
               <div className="ml-2 h-px flex-1 bg-neutral-900" />
             )}
           </div>
@@ -256,32 +214,38 @@ function StepScenario({
   value: Scenario | null;
   onChange: (s: Scenario) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
-      <h2 className="mb-1 text-lg font-semibold">Pick a deployment scenario</h2>
+      <h2 className="mb-1 text-lg font-semibold">
+        {t("setup.scenario.pickTitle")}
+      </h2>
       <p className="mb-4 text-sm text-neutral-400">
-        We tune defaults and infra suggestions based on this choice. You can
-        change it later in <code>/admin</code>.
+        {t("setup.scenario.pickHint")}
       </p>
       <div className="grid gap-3">
-        {SCENARIOS.map((s) => (
+        {SCENARIO_ORDER.map((id) => (
           <button
-            key={s.id}
+            key={id}
             type="button"
-            onClick={() => onChange(s.id)}
+            onClick={() => onChange(id)}
             className={`rounded-lg border px-4 py-3 text-left transition-colors ${
-              value === s.id
+              value === id
                 ? "border-accent bg-accent/10"
                 : "border-neutral-900 bg-neutral-950/40 hover:border-neutral-800"
             }`}
           >
             <div className="flex items-baseline justify-between">
-              <div className="text-sm font-medium">{s.title}</div>
+              <div className="text-sm font-medium">
+                {t(`setup.scenario.${id}.title`)}
+              </div>
               <div className="text-[10px] uppercase tracking-wider text-neutral-500">
-                {s.id}
+                {id}
               </div>
             </div>
-            <div className="mt-1 text-xs text-neutral-400">{s.blurb}</div>
+            <div className="mt-1 text-xs text-neutral-400">
+              {t(`setup.scenario.${id}.blurb`)}
+            </div>
           </button>
         ))}
       </div>
@@ -298,26 +262,20 @@ function StepInfra({
   value: Infra | null;
   onChange: (i: Infra) => void;
 }) {
-  const meta = SCENARIOS.find((s) => s.id === scenario)!;
-  const recommended = new Set(meta.recommendsInfra);
-  const order: Infra[] = [
-    "native-launchd",
-    "docker-single",
-    "docker-compose",
-    "kubernetes",
-    "headless",
-  ];
+  const { t } = useTranslation();
+  const recommended = new Set(RECOMMENDED_INFRA[scenario]);
   return (
     <>
-      <h2 className="mb-1 text-lg font-semibold">Pick an infra layout</h2>
+      <h2 className="mb-1 text-lg font-semibold">
+        {t("setup.infra.pickTitle")}
+      </h2>
       <p className="mb-4 text-sm text-neutral-400">
-        Recommended options for <b>{meta.title}</b> are marked. This only
-        affects which deploy guide the dashboard links to — the server runs
-        identically across all options.
+        {t("setup.infra.pickHint", {
+          scenario: t(`setup.scenario.${scenario}.title`),
+        })}
       </p>
       <div className="grid gap-2">
-        {order.map((id) => {
-          const m = INFRA[id];
+        {INFRA_ORDER.map((id) => {
           const isRec = recommended.has(id);
           return (
             <button
@@ -331,14 +289,18 @@ function StepInfra({
               }`}
             >
               <div className="flex items-baseline justify-between">
-                <div className="text-sm font-medium">{m.title}</div>
+                <div className="text-sm font-medium">
+                  {t(`setup.infra.${id}.title`)}
+                </div>
                 {isRec && (
                   <span className="rounded bg-emerald-900/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-emerald-300">
-                    recommended
+                    {t("setup.infra.recommended")}
                   </span>
                 )}
               </div>
-              <div className="mt-1 text-xs text-neutral-400">{m.blurb}</div>
+              <div className="mt-1 text-xs text-neutral-400">
+                {t(`setup.infra.${id}.blurb`)}
+              </div>
             </button>
           );
         })}
@@ -354,33 +316,27 @@ function StepBootstrap({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
-      <h2 className="mb-1 text-lg font-semibold">Paste the bootstrap admin token</h2>
-      <p className="mb-4 text-sm text-neutral-400">
-        On first launch the server prints a one-time admin token to its log.
-        Paste it here so the wizard can call admin-scoped endpoints and we
-        can store it in this browser. (You can rotate it later via{" "}
-        <code>/admin/tokens</code>.)
-      </p>
+      <h2 className="mb-1 text-lg font-semibold">{t("setup.token.title")}</h2>
+      <p className="mb-4 text-sm text-neutral-400">{t("setup.token.hint")}</p>
       <input
         type="password"
         autoComplete="off"
         spellCheck={false}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="wt_admin_…"
+        placeholder={t("setup.token.placeholder")}
         className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 font-mono text-sm focus:border-accent focus:outline-none"
       />
       <div className="mt-3 rounded-md border border-neutral-900 bg-neutral-950/60 p-3 text-xs text-neutral-400">
-        <div className="mb-1 font-medium text-neutral-300">Where to find it</div>
+        <div className="mb-1 font-medium text-neutral-300">
+          {t("setup.token.whereToFind")}
+        </div>
         <code className="block text-[11px] text-neutral-500">
           tail -n 40 /var/log/wigtoken.out.log
         </code>
-        <div className="mt-1">
-          Or check the launchd <code>StandardOutPath</code> from your
-          plist.
-        </div>
       </div>
     </>
   );
@@ -393,16 +349,14 @@ function StepEmbed({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <h2 className="mb-1 text-lg font-semibold">
-        Add an embed origin <span className="text-neutral-500">(optional)</span>
+        {t("setup.embed.title")}{" "}
+        <span className="text-neutral-500">({t("setup.embed.optional")})</span>
       </h2>
-      <p className="mb-4 text-sm text-neutral-400">
-        If you plan to embed the widget on a public site (marketing page,
-        team about-page), whitelist the origin now. You can manage origins
-        later in <code>/admin/embeds</code>.
-      </p>
+      <p className="mb-4 text-sm text-neutral-400">{t("setup.embed.hint")}</p>
       <input
         type="text"
         autoComplete="off"
@@ -413,8 +367,7 @@ function StepEmbed({
         className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 font-mono text-sm focus:border-accent focus:outline-none"
       />
       <p className="mt-2 text-xs text-neutral-500">
-        Leave blank to skip — the widget will still work from same-origin
-        pages (your own dashboard).
+        {t("setup.embed.hintBlank")}
       </p>
     </>
   );

@@ -1,8 +1,5 @@
 {
-  "brand": {
-    "name": "wigtoken",
-    "tagline": "运维仪表板"
-  },
+  "brand": { "name": "wigtoken", "tagline": "运维仪表板" },
   "nav": {
     "overview": "概览",
     "users": "用户",
@@ -73,11 +70,13 @@
     }
   },
   "setup": {
-    "title": "设置",
-    "subtitle": "选择场景，我们会为您调整默认值。",
+    "title": "设置向导",
     "next": "下一步",
     "back": "返回",
-    "finish": "完成",
+    "finish": "完成设置",
+    "finishing": "完成中…",
+    "alreadyComplete": "已经完成设置。重新运行向导会覆盖场景/基础设施标签和嵌入来源，但不会影响现有令牌和数据。",
+    "persisted": "配置存储在本地数据库中。您可以随时通过此路径重新运行向导 —",
     "step": {
       "scenario": "场景",
       "infra": "基础设施",
@@ -85,18 +84,48 @@
       "embed": "嵌入来源"
     },
     "scenario": {
-      "solo": {
-        "title": "独立",
-        "blurb": "一位开发者，一台机器。个人使用量跟踪器。"
+      "pickTitle": "选择部署场景",
+      "pickHint": "根据选择，默认值和基础设施建议会自动调整。可在 /admin 中稍后更改。",
+      "solo": { "title": "独立", "blurb": "一位开发者，一台机器。个人使用量跟踪器。" },
+      "team": { "title": "团队", "blurb": "2-20 名开发者，共享仪表板。在团队站点嵌入小部件。" },
+      "org": { "title": "组织", "blurb": "20+ 名开发者，多台机器，集中聚合。" }
+    },
+    "infra": {
+      "pickTitle": "选择基础设施布局",
+      "pickHint": "为 {{scenario}} 推荐的选项已标注。所有选项下服务器运行方式相同 — 仅影响仪表板链接到的部署指南。",
+      "recommended": "推荐",
+      "native-launchd": {
+        "title": "Native (launchd / systemd)",
+        "blurb": "作为系统服务运行。无容器层。最轻量。"
       },
-      "team": {
-        "title": "团队",
-        "blurb": "2-20 名开发者，共享仪表板。"
+      "docker-single": {
+        "title": "Docker（单容器）",
+        "blurb": "一个容器，bind-mount ~/.claude/projects。"
       },
-      "org": {
-        "title": "组织",
-        "blurb": "20+ 名开发者，多台机器。"
+      "docker-compose": {
+        "title": "Docker Compose",
+        "blurb": "服务器 + nginx 一栈。内置仪表板。"
+      },
+      "kubernetes": {
+        "title": "Kubernetes",
+        "blurb": "Helm 图表，SQLite 持久卷。适合大型组织。"
+      },
+      "headless": {
+        "title": "Headless（仅 ingest）",
+        "blurb": "无仪表板 SPA。仅 ingest + 嵌入端点。"
       }
+    },
+    "token": {
+      "title": "粘贴引导管理员令牌",
+      "hint": "首次启动时服务器会将一次性管理员令牌打印到日志。在此粘贴以便向导调用管理员端点并保存到此浏览器。（可通过 /admin/tokens 轮换）",
+      "placeholder": "wt_admin_…",
+      "whereToFind": "在哪里找到"
+    },
+    "embed": {
+      "title": "添加嵌入来源",
+      "optional": "可选",
+      "hint": "如果计划在公开站点（营销页面、团队介绍）嵌入小部件，现在将来源加入白名单。可在 /admin/embeds 稍后管理。",
+      "hintBlank": "留空则跳过 — 在同源页面（您自己的仪表板）上小部件仍可工作。"
     }
   },
   "common": {
