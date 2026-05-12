@@ -55,7 +55,7 @@ export async function bootstrapAdmin(storage: Storage): Promise<string | null> {
  * exits the event loop.
  */
 export async function startDaemon(cfg: AppConfig = loadConfig()) {
-  const storage = openStorage(cfg.db);
+  const storage = await openStorage(cfg.db);
   await bootstrapAdmin(storage);
 
   if (!storage.raw) {

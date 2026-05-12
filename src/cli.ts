@@ -40,7 +40,7 @@ function ensureSqliteDir(url: string) {
 async function cmdInit() {
   const cfg = loadConfig();
   if (cfg.db.kind === "sqlite") ensureSqliteDir(cfg.db.url);
-  const storage = openStorage(cfg.db);
+  const storage = await openStorage(cfg.db);
   const issued = await bootstrapAdmin(storage);
   if (!issued) {
     console.log("Database already initialized — no new admin token issued.");

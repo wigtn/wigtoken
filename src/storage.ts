@@ -175,14 +175,24 @@ function wrapSqlite(rawDb: Database.Database): Storage {
 
 // ───── Factory ────────────────────────────────────────────────────
 
-export function openStorage(input: string | DbConfig): Storage {
+/**
+ * Async factory — Postgres (and eventually MySQL) need to lazy-load
+ * the optional driver, ping the server, and apply the schema before
+ * returning. SQLite stays effectively instant.
+ */
+export async function openStorage(input: string | DbConfig): Promise<Storage> {
   const cfg: DbConfig =
     typeof input === "string" ? { kind: "sqlite", url: input } : input;
 
-  if (cfg.kind === "postgres" || cfg.kind === "mysql") {
+  if (cfg.kind === "postgres") {
+    const { openPgStorage } = await import("./storage-pg.ts");
+    return openPgStorage(cfg.url);
+  }
+
+  if (cfg.kind === "mysql") {
     throw new Error(
-      `wigtoken: ${cfg.kind} backend is not implemented yet (coming in a v0.3.x patch). ` +
-        `Set DB_URL to a sqlite path or omit it to use the default.`
+      `wigtoken: mysql backend is not implemented yet (coming in v0.3.x). ` +
+        `Set DB_URL to a sqlite path or a postgres:// URL.`
     );
   }
 
