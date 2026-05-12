@@ -1,0 +1,134 @@
+---
+title: 소개
+---
+
+import Hero from "../../components/Hero.tsx";
+import FeatureGrid from "../../components/FeatureGrid.tsx";
+import Preview from "../../components/Preview.tsx";
+
+<Hero
+  eyebrow="v0.2 · 셀프 호스팅"
+  title={<>당신의 Claude Code 팀을 위한 토큰 미터.</>}
+  subtitle="멀티 유저 집계, 실시간 SSE, 한 줄로 끼워넣는 React 위젯, 그리고 내장 대시보드. 한 줄 명령으로 셀프 호스팅 — 모든 사용 데이터를 내 인프라에 둡니다."
+  ctas={[
+    { label: "빠른 시작", href: "/ko/quickstart", variant: "primary" },
+    { label: "라이브 데모", href: "/demo/", variant: "ghost" },
+    { label: "GitHub", href: "https://github.com/wigtn/wigtoken", variant: "ghost" },
+  ]}
+/>
+
+## 이런 걸 제공합니다
+
+<FeatureGrid features={[
+  {
+    title: "어디서든 라이브 카운터",
+    body: "팀 사이트, 마케팅 페이지, 히어로 섹션에 <TokenCounter /> 한 줄. SSE로 모든 임베드가 동기화 — 폴링 없이, 지연 없이.",
+    accent: "#a78bfa",
+  },
+  {
+    title: "첫날부터 멀티 유저",
+    body: "유저별/머신별/모델별 리더보드. 솔로 개발자든 50명 조직이든 같은 서버, 같은 와이어 포맷.",
+    accent: "#5eead4",
+  },
+  {
+    title: "오퍼레이터 대시보드 포함",
+    body: "내장 SPA를 / 경로에서 바로 사용. Grafana 필요 없음. Prometheus는 선택사항.",
+    accent: "#fbbf24",
+  },
+  {
+    title: "데이터는 내 디스크에",
+    body: "기본 SQLite. Mac mini, Linux 서버, Docker, Kubernetes 어디든 가능. Postgres / MySQL 지원 작업 중.",
+    accent: "#22d3ee",
+  },
+  {
+    title: "제로터치 ingest",
+    body: "각 노트북에 에이전트를 띄우거나, Claude Code의 PostToolUse 훅 한 줄. 둘 다 오프라인 복원력 있음.",
+    accent: "#fb7185",
+  },
+  {
+    title: "테마 가능한 React 위젯",
+    body: "테마 5종 × variant 5종 × 슬롯머신 digit 애니메이션. Tree-shakeable ESM + CJS, 43 KB minified.",
+    accent: "#c4b5fd",
+  },
+]} />
+
+## 직접 보세요
+
+이 페이지에 임베드된 위젯 전부 — 실제 npm에 올라간 `@wigtoken-temp/widget` 그대로입니다. 인페이지 모의 백엔드로 돌고 있어서 서버 없이도 만져볼 수 있습니다.
+
+<Preview section="hero" height={520} />
+
+```tsx
+import { ProviderConfig, WeightedTokenCounter, CostCounter, BurnSparkline } from "@wigtoken-temp/widget";
+
+<ProviderConfig server={env.SERVER} token={env.TOKEN}>
+  <h1>우리 팀이 처리한 토큰: <WeightedTokenCounter />.</h1>
+  <CostCounter />
+  <BurnSparkline range="24h" />
+</ProviderConfig>
+```
+
+## 설치
+
+```bash
+# 셀프 호스팅 서버 (대시보드 포함)
+npm install -g @wigtoken-temp/wigtoken
+wigtoken init && wigtoken start
+
+# 또는 도커 이미지
+docker run -d -p 10103:10103 -v wigtoken:/data ghcr.io/wigtn/wigtoken:latest
+```
+
+```bash
+# 내 사이트에 임베드
+npm install @wigtoken-temp/widget
+```
+
+```bash
+# 개인 노트북에서 transcript 푸시
+npm install -g @wigtoken-temp/agent
+wigtoken-agent run --server https://your-server --token wti_...
+```
+
+## 시작하기
+
+<FeatureGrid features={[
+  {
+    title: "빠른 시작 →",
+    body: "솔로 / 팀 / 조직 중 선택. 30초 안에 첫 카운터, 10분 안에 팀 공유 대시보드.",
+    accent: "#a78bfa",
+  },
+  {
+    title: "위젯 레퍼런스 →",
+    body: "컴포넌트별 라이브 iframe. 16개 위젯, 7개 테마, 5개 variant — 모든 prop 문서화.",
+    accent: "#5eead4",
+  },
+  {
+    title: "배포 →",
+    body: "Native (launchd / systemd), Docker, Compose, Kubernetes — 팀 규모에 맞는 레이아웃 선택.",
+    accent: "#fbbf24",
+  },
+  {
+    title: "셀프 호스팅 →",
+    body: "TLS, 토큰 스코프, 임베드 오리진, 헤드리스 모드, 백업, 업그레이드 등 운영 가이드.",
+    accent: "#22d3ee",
+  },
+  {
+    title: "Claude Code 훅 →",
+    body: "에이전트 없이도 가능: settings.json에 한 블록만 추가하면 매 세션이 사용량을 푸시합니다.",
+    accent: "#fb7185",
+  },
+  {
+    title: "API 레퍼런스 →",
+    body: "모든 REST + SSE + Prometheus 엔드포인트, 모든 상태 코드, 모든 토큰 스코프.",
+    accent: "#c4b5fd",
+  },
+]} />
+
+## 최근 업데이트
+
+- **v0.2.0** — 위젯 비주얼 오버홀: 슬롯머신 digit 애니메이션, 그라데이션 sparkline, glow 링이 들어간 EmbedPulseDot, 반응형 StatGrid, cyan + rose 포함 7개 테마.
+- **v0.1.5** — npm provenance 적용 첫 publish.
+- **v0.1.0** — 최초 릴리즈.
+
+전체 로그는 [CHANGELOG](https://github.com/wigtn/wigtoken/blob/main/CHANGELOG.md) 참조.

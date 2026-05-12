@@ -1,4 +1,5 @@
 import meta from "../../../pages/_meta.ts";
+import ko_meta from "../../../pages/ko/_meta.ts";
 export const pageMap = [{
   data: meta
 }, {
@@ -37,6 +38,24 @@ export const pageMap = [{
   frontMatter: {
     "title": "Introduction"
   }
+}, {
+  name: "ko",
+  route: "/ko",
+  children: [{
+    data: ko_meta
+  }, {
+    name: "index",
+    route: "/ko",
+    frontMatter: {
+      "title": "소개"
+    }
+  }, {
+    name: "quickstart",
+    route: "/ko/quickstart",
+    frontMatter: {
+      "title": "빠른 시작"
+    }
+  }]
 }, {
   name: "quickstart",
   route: "/quickstart",

@@ -28,6 +28,12 @@ const config: DocsThemeConfig = {
     hue: 270,
     saturation: 70,
   },
+  i18n: [
+    { locale: "en", name: "English" },
+    { locale: "ko", name: "한국어" },
+    { locale: "ja", name: "日本語" },
+    { locale: "zh", name: "中文" },
+  ],
 };
 
 export default config;

@@ -1,0 +1,57 @@
+---
+title: 빠른 시작
+---
+
+# 빠른 시작
+
+자신의 시나리오에 맞는 섹션을 고르세요. 세 가지 모두 동일한 서버를 설치합니다 — transcript를 어떻게 수집하고 대시보드를 어디서 돌릴지만 다릅니다.
+
+## 솔로 — 2분
+
+```bash
+npm install -g @wigtoken-temp/wigtoken
+wigtoken init   # ./data/stats.db 생성
+wigtoken start  # 기본 :10103 포트로 listen
+```
+
+브라우저에서 `http://localhost:10103/setup`을 열고 위저드를 진행하세요. 서버 로그에 출력된 부트스트랩 admin 토큰을 붙여넣으면 됩니다.
+
+서버는 기본적으로 같은 머신의 `~/.claude/projects/`를 감시하므로, Claude Code 세션을 실행하는 즉시 데이터가 들어오기 시작합니다.
+
+## 팀 — 10분
+
+운영자 한 명이 항상 켜져 있는 어딘가에 서버를 띄웁니다 (도킹된 노트북, Mac mini, 작은 VPS):
+
+```bash
+docker run -d --name wigtoken \
+  -p 10103:10103 \
+  -v wigtoken-data:/data \
+  -e MODE=team \
+  -e ALLOWED_ORIGINS="https://your-team-site.com" \
+  ghcr.io/wigtn/wigtoken:latest
+```
+
+팀원은 **둘 중 하나**를 설치합니다:
+
+1. **Claude Code 훅** — `~/.claude/settings.json`에 `PostToolUse` 블록 한 줄 추가. 셋업 시간: 30초. [훅 문서](/ko/hooks) 참조.
+2. **에이전트 CLI** — `npm install -g @wigtoken-temp/agent`, `wigtoken-agent run --server https://your-server --token wti_…`. 더 안정적 (오프라인 큐 + 재시도). [에이전트 문서](/ko/agent) 참조.
+
+운영자는 각 팀원에게 `/admin/tokens`에서 `ingest` 스코프 토큰을 발급해주면 됩니다.
+
+## 조직 — 30분
+
+팀 셋업에 더해:
+
+- nginx/cloudflared 뒤에서 TLS 종단 처리.
+- *(선택)* Prometheus를 `/metrics`에 연결하고 [Grafana 대시보드](https://github.com/wigtn/wigtoken/blob/main/grafana/dashboard.json)를 가져옵니다 — 이미 해당 스택이 있다면. wigtoken 자체 대시보드(`/`)가 기본 시각화 표면입니다.
+- 토큰을 admin API (`POST /api/admin/tokens`)로 발급해 프로비저닝 스크립트에 끼워 넣으세요.
+
+Helm 차트는 [배포 → kubernetes](/ko/deploy#kubernetes) 참조.
+
+## 잘 작동하는지 확인
+
+```bash
+curl https://your-wigtoken/api/usage/totals | jq .
+```
+
+첫 Claude Code 턴 이후 `messages > 0`이 보여야 합니다. 안 보이면 [배포 문서의 트러블슈팅](/ko/deploy#troubleshooting) 참조.
