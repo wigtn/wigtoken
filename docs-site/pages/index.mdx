@@ -2,63 +2,166 @@
 title: Introduction
 ---
 
-# wigtoken
+import Hero from "../components/Hero.tsx";
+import FeatureGrid from "../components/FeatureGrid.tsx";
+import Preview from "../components/Preview.tsx";
 
-Self-hostable usage aggregator for Claude Code. Tracks token consumption per user, machine, and model — comes with a built-in operator dashboard, a drop-in React widget for embedding live counters anywhere, and REST + SSE APIs. Prometheus integration is optional, not required.
+<Hero
+  eyebrow="v0.2 · self-hosted"
+  title={<>The token meter for <i>your</i> Claude Code crew.</>}
+  subtitle="Multi-user aggregation, real-time SSE, a drop-in React widget, and a built-in dashboard. Self-host in one command — keep every byte of usage data on your own infra."
+  ctas={[
+    { label: "Quickstart", href: "/quickstart", variant: "primary" },
+    { label: "Live demo", href: "/demo/", variant: "ghost" },
+    { label: "GitHub", href: "https://github.com/wigtn/wigtoken", variant: "ghost" },
+  ]}
+/>
 
-## What it solves
+## What you get
 
-If you're paying for Claude Code on a Max plan (or any plan) and want to know how much you and your team are burning, you have a few options:
+<FeatureGrid features={[
+  {
+    title: "Live counters, anywhere",
+    body: "Drop <TokenCounter /> on your team site, marketing page, or hero. SSE keeps every embed in sync — no polling, no stale data.",
+    accent: "#a78bfa",
+  },
+  {
+    title: "Multi-user from day one",
+    body: "Per-user, per-machine, per-model leaderboards. Solo dev or 50-person org — same server, same wire format.",
+    accent: "#5eead4",
+  },
+  {
+    title: "Operator dashboard included",
+    body: "Built-in SPA at /. No Grafana required. Prometheus is optional — use it if you already run that stack.",
+    accent: "#fbbf24",
+  },
+  {
+    title: "Your data, your disk",
+    body: "SQLite by default. Self-host on a Mac mini, a Linux box, Docker, or Kubernetes. Postgres / MySQL coming next.",
+    accent: "#22d3ee",
+  },
+  {
+    title: "Zero-touch ingest",
+    body: "Run an agent on each laptop, or use Claude Code's PostToolUse hook with one line in settings.json. Both work offline-resilient.",
+    accent: "#fb7185",
+  },
+  {
+    title: "Themable React widget",
+    body: "5 themes × 5 variants × slot-machine digit animation. Tree-shakeable ESM + CJS, 43 KB minified.",
+    accent: "#c4b5fd",
+  },
+]} />
 
-- **Anthropic Console** — shows API spend, not Claude Code session spend.
-- **ccusage** — single-user CLI, no team aggregation, no embedding.
-- **CodeBurn** — pretty, but solo-only, hosted, no real-time embed.
-- **wigtoken** — multi-user, self-hosted, real-time SSE, built-in dashboard + npm widget, optional Prometheus.
+## See it live
 
-## Three personas
+The whole widget package, embedded right here. This is the same `@wigtoken-temp/widget` you'd install — running against an in-page mock backend so you can poke at it without a server.
 
-<table>
-  <thead>
-    <tr><th>Persona</th><th>Setup time</th><th>What you get</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><b>Solo</b></td>
-      <td>~30s (hook) / ~2min (native)</td>
-      <td>Personal dashboard + cost breakdown by model</td>
-    </tr>
-    <tr>
-      <td><b>Team</b> (2–20)</td>
-      <td>~10min</td>
-      <td>Shared dashboard, embed on team site, per-user leaderboard</td>
-    </tr>
-    <tr>
-      <td><b>Org</b> (20+)</td>
-      <td>~30min</td>
-      <td>Multi-host aggregation, audit log, optional Prometheus / Grafana</td>
-    </tr>
-  </tbody>
-</table>
+<Preview section="hero" height={520} />
 
-## Architecture in one diagram
+```tsx
+import { ProviderConfig, WeightedTokenCounter, CostCounter, BurnSparkline } from "@wigtoken-temp/widget";
+
+<ProviderConfig server={env.SERVER} token={env.TOKEN}>
+  <h1>Our crew has processed <WeightedTokenCounter /> tokens.</h1>
+  <CostCounter />
+  <BurnSparkline range="24h" />
+</ProviderConfig>
+```
+
+## Install
+
+```bash
+# self-hosted server (with built-in dashboard)
+npm install -g @wigtoken-temp/wigtoken
+wigtoken init && wigtoken start
+
+# or pull the image
+docker run -d -p 10103:10103 -v wigtoken:/data ghcr.io/wigtn/wigtoken:latest
+```
+
+```bash
+# embed on your own site
+npm install @wigtoken-temp/widget
+```
+
+```bash
+# push transcripts from a personal laptop
+npm install -g @wigtoken-temp/agent
+wigtoken-agent run --server https://your-server --token wti_...
+```
+
+## How it fits together
 
 ```
 Claude Code session(s)            wigtoken server                 Consumers
-─────────────────────             ──────────────────                 ─────────
-~/.claude/projects/   ──watch──►  chokidar + scanner                 GET /api/usage/totals
-  *.jsonl                          │                                 GET /api/usage/timeseries
-                                   ▼                                 GET /metrics  (Prometheus)
-                                  SQLite (WAL)                       SSE /api/usage/stream
-                                   │                                 SSE /embed/stream
-                                   ▼                                  ↓
-                                 Hono app  ───────────►  operator dashboard (/web)
-                                                          npm @wigtoken-temp/widget
-                                                          embed on wigtn.com etc.
+─────────────────────             ──────────────────              ──────────
+~/.claude/projects/   ──watch──►  chokidar + scanner              GET /api/usage/*
+  *.jsonl                          │                              SSE /api/usage/stream
+                                   ▼                              GET /metrics       (optional)
+                                  SQLite (WAL)                    SSE /embed/stream
+                                   │                                       │
+                                   ▼                                       ▼
+                                 Hono app  ─────►  operator dashboard SPA + @wigtoken-temp/widget
 ```
 
 ## Get started
 
-- [Quickstart](/quickstart) — pick solo, team, or org.
-- [Deployment](/deploy) — native, Docker, Compose, Kubernetes.
-- [Widget](/widget) — 16 React components, themable, SSE.
-- [API reference](/api-reference) — endpoints + auth scopes.
+<FeatureGrid features={[
+  {
+    title: "Quickstart →",
+    body: "Pick solo, team, or org. 30 seconds to first counter, 10 minutes to a shared team dashboard.",
+    accent: "#a78bfa",
+  },
+  {
+    title: "Widget reference →",
+    body: "Live iframes per component. 16 widgets, 7 themes, 5 variants — every prop documented.",
+    accent: "#5eead4",
+  },
+  {
+    title: "Deployment →",
+    body: "Native (launchd / systemd), Docker, Compose, Kubernetes — pick the layout that matches your team size.",
+    accent: "#fbbf24",
+  },
+  {
+    title: "Self-hosting →",
+    body: "TLS, token scopes, embed origins, headless mode, backups, upgrades. Production hardening guide.",
+    accent: "#22d3ee",
+  },
+  {
+    title: "Claude Code hooks →",
+    body: "Skip the agent: one `settings.json` block and every Claude Code session pushes its usage.",
+    accent: "#fb7185",
+  },
+  {
+    title: "API reference →",
+    body: "Every REST + SSE + Prometheus endpoint, every status code, every token scope.",
+    accent: "#c4b5fd",
+  },
+]} />
+
+## Compared to
+
+| | wigtoken | [ccusage](https://github.com/ryoppippi/ccusage) | [CodeBurn](https://codeburn.dev) |
+| --- | --- | --- | --- |
+| Surface | server + dashboard + widget | CLI | hosted web app |
+| Hosting | self-host anywhere | local only | SaaS |
+| Multi-user | ✅ | ❌ | ❌ |
+| Multi-machine | ✅ | ❌ | ❌ |
+| Real-time SSE | ✅ | n/a | poll |
+| Embed widget | ✅ npm package | ❌ | ❌ |
+| Custom widget components | 16+ | n/a | ❌ |
+| Prometheus / Grafana | ✅ optional | ❌ | ❌ |
+| Audit log | ✅ | ❌ | ❌ |
+| Token scopes | ingest / read / embed / admin | n/a | n/a |
+| Data ownership | yours | yours | theirs |
+| License | MIT | MIT | proprietary |
+
+See the full [comparison page](/comparison) for the long-form story.
+
+## Latest
+
+- **v0.2.0** — widget visual overhaul: slot-machine digit animation, gradient stroke sparkline, glow rings on EmbedPulseDot, responsive `StatGrid`, 7 themes including cyan + rose.
+- **v0.1.5** — first npm publish with provenance.
+- **v0.1.0** — initial release.
+
+See the [CHANGELOG](https://github.com/wigtn/wigtoken/blob/main/CHANGELOG.md) for the full log.
