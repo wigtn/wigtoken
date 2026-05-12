@@ -1,7 +1,16 @@
+import { motion } from "framer-motion";
 import type { CSSProperties } from "react";
 import { useLeaderboard } from "./hooks";
 import { formatCurrency } from "./format";
-import { labelStyle, numberStyle, sharedFontStyle, type Size, type Theme } from "./theme";
+import {
+  labelStyle,
+  numberStyle,
+  resolveTheme,
+  sharedFontStyle,
+  MOTION,
+  type Size,
+  type Theme,
+} from "./theme";
 
 export interface ModelLegendProps {
   size?: Size;
@@ -13,22 +22,23 @@ export interface ModelLegendProps {
 }
 
 const FAMILY_COLOR: Record<string, string> = {
-  opus: "#8b5cf6",
-  sonnet: "#14b8a6",
-  haiku: "#f59e0b",
+  opus: "#a78bfa",
+  sonnet: "#5eead4",
+  haiku: "#fbbf24",
   unknown: "#737373",
 };
 
 /** Inline legend that shows each model family with its share of cost. */
 export function ModelLegend({
-  size: _size = "md",
-  theme: _theme = "auto",
+  size = "md",
+  theme = "auto",
   title = "Models",
   locale,
   containerStyle,
   className,
 }: ModelLegendProps) {
   const { data } = useLeaderboard({ by: "model_family", limit: 10 });
+  const { colors } = resolveTheme({ size, theme });
   const entries = data?.entries ?? [];
   const total = entries.reduce((s, e) => s + e.costUsd, 0) || 1;
 
@@ -39,20 +49,29 @@ export function ModelLegend({
         display: "flex",
         flexDirection: "column",
         gap: 6,
+        color: colors.fg,
         ...containerStyle,
       }}
       className={className}
     >
-      {title && <div style={labelStyle}>{title}</div>}
-      {entries.map((e) => {
+      {title && (
+        <div style={{ ...labelStyle, color: colors.muted, marginBottom: 4 }}>
+          {title}
+        </div>
+      )}
+      {entries.map((e, idx) => {
         const pct = ((e.costUsd / total) * 100).toFixed(1);
+        const color = FAMILY_COLOR[e.key] ?? "#737373";
         return (
-          <div
+          <motion.div
             key={e.key}
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ ...MOTION.spring, delay: idx * 0.05 }}
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: 10,
               fontSize: "0.8125rem",
               ...numberStyle,
             }}
@@ -60,21 +79,32 @@ export function ModelLegend({
             <span
               aria-hidden
               style={{
-                width: 10,
-                height: 10,
-                borderRadius: 2,
-                background: FAMILY_COLOR[e.key] ?? "#737373",
+                width: 12,
+                height: 12,
+                borderRadius: 3,
+                background: color,
+                boxShadow: `0 0 8px ${color}55`,
                 flexShrink: 0,
               }}
             />
-            <span style={{ flex: 1, fontWeight: 500 }}>{e.key}</span>
-            <span style={{ opacity: 0.7, width: 64, textAlign: "right" }}>
+            <span style={{ flex: 1, fontWeight: 600, color: colors.fg }}>
+              {e.key}
+            </span>
+            <span style={{ color: colors.muted, width: 70, textAlign: "right" }}>
               {formatCurrency(e.costUsd, "USD", locale)}
             </span>
-            <span style={{ opacity: 0.4, width: 44, textAlign: "right" }}>
+            <span
+              style={{
+                color: colors.muted,
+                opacity: 0.7,
+                width: 48,
+                textAlign: "right",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
               {pct}%
             </span>
-          </div>
+          </motion.div>
         );
       })}
     </div>

@@ -1,9 +1,10 @@
+import { motion } from "framer-motion";
 import { useEffect, useState, type CSSProperties } from "react";
 import { useWigtnContext } from "./ProviderConfig";
 
 export interface EmbedPulseDotProps {
   size?: number;
-  /** When true, shows the relative time of the last update next to the dot. */
+  /** When true, shows status text ("live" / "offline") next to the dot. */
   withLabel?: boolean;
   /** Override colours. */
   connectedColor?: string;
@@ -13,36 +14,40 @@ export interface EmbedPulseDotProps {
 }
 
 /**
- * Connection-status indicator. Renders a small coloured dot that pulses
- * for ~400ms whenever a new totals payload arrives, and switches to a
- * dim grey when SSE drops.
+ * Connection-status indicator. Renders an emerald/grey dot with two
+ * pulsing rings around it while SSE is alive — the rings ride a slow
+ * Framer Motion scale loop so the page never goes fully still. When
+ * SSE drops, the rings fade and the dot dims to grey.
  */
 export function EmbedPulseDot({
   size = 8,
   withLabel = false,
-  connectedColor = "var(--wigtoken-accent, #7c3aed)",
+  connectedColor = "var(--wigtoken-accent, #34d399)",
   disconnectedColor = "#a3a3a3",
   containerStyle,
   className,
 }: EmbedPulseDotProps) {
   const { isConnected, lastUpdate } = useWigtnContext();
-  const [pulse, setPulse] = useState(false);
+  const [bump, setBump] = useState(false);
 
+  // Quick pop on each new totals payload.
   useEffect(() => {
     if (!lastUpdate) return;
-    setPulse(true);
-    const t = setTimeout(() => setPulse(false), 400);
+    setBump(true);
+    const t = setTimeout(() => setBump(false), 360);
     return () => clearTimeout(t);
   }, [lastUpdate]);
 
   const color = isConnected ? connectedColor : disconnectedColor;
+  const ringSize = size * 2.4;
 
   return (
     <span
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 6,
+        gap: 8,
+        position: "relative",
         ...containerStyle,
       }}
       className={className}
@@ -50,21 +55,67 @@ export function EmbedPulseDot({
       <span
         aria-hidden
         style={{
-          display: "inline-block",
-          width: size,
-          height: size,
-          borderRadius: "50%",
-          background: color,
-          transform: pulse ? "scale(1.6)" : "scale(1)",
-          boxShadow: pulse
-            ? `0 0 0 6px color-mix(in srgb, ${color} 20%, transparent)`
-            : "none",
-          transition:
-            "transform 240ms ease-out, box-shadow 240ms ease-out, background-color 200ms",
+          position: "relative",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: ringSize,
+          height: ringSize,
         }}
-      />
+      >
+        {/* Slow ambient ring */}
+        {isConnected && (
+          <motion.span
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+              opacity: 0.5,
+            }}
+            animate={{ scale: [0.7, 1.2, 0.7], opacity: [0.25, 0.5, 0.25] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+          />
+        )}
+        {/* Bump ring on each update */}
+        {isConnected && bump && (
+          <motion.span
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              border: `1px solid ${color}`,
+            }}
+            initial={{ scale: 0.7, opacity: 0.8 }}
+            animate={{ scale: 1.6, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        )}
+        {/* Core dot */}
+        <motion.span
+          animate={{ scale: bump ? 1.25 : 1 }}
+          transition={{ duration: 0.24 }}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            background: color,
+            boxShadow: isConnected
+              ? `0 0 8px ${color}, 0 0 16px color-mix(in srgb, ${color} 35%, transparent)`
+              : "none",
+          }}
+        />
+      </span>
       {withLabel && (
-        <span style={{ fontSize: "0.6875rem", opacity: 0.7 }}>
+        <span
+          style={{
+            fontSize: "0.6875rem",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: isConnected ? color : disconnectedColor,
+            opacity: 0.9,
+          }}
+        >
           {isConnected ? "live" : "offline"}
         </span>
       )}

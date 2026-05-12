@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import type { CSSProperties } from "react";
 import { useRecent } from "./hooks";
 import { formatCurrency, formatNumber, formatRelativeTime } from "./format";
@@ -6,6 +7,7 @@ import {
   numberStyle,
   resolveTheme,
   sharedFontStyle,
+  MOTION,
   type Size,
   type Theme,
 } from "./theme";
@@ -22,9 +24,9 @@ export interface RecentActivityProps {
 }
 
 const FAMILY_COLOR: Record<string, string> = {
-  opus: "#8b5cf6",
-  sonnet: "#14b8a6",
-  haiku: "#f59e0b",
+  opus: "#a78bfa",
+  sonnet: "#5eead4",
+  haiku: "#fbbf24",
   unknown: "#737373",
 };
 
@@ -39,61 +41,96 @@ export function RecentActivity({
   className,
 }: RecentActivityProps) {
   const { data } = useRecent({ limit });
-  const { sizes } = resolveTheme({ size, theme });
+  const { sizes, colors } = resolveTheme({ size, theme });
   const entries = data?.entries ?? [];
 
   const wrapper: CSSProperties = {
     ...sharedFontStyle,
     display: "flex",
     flexDirection: "column",
-    gap: 6,
+    gap: 4,
+    color: colors.fg,
     ...containerStyle,
   };
 
   return (
     <div style={wrapper} className={className}>
-      {title && <div style={labelStyle}>{title}</div>}
+      {title && (
+        <div style={{ ...labelStyle, color: colors.muted, marginBottom: 4 }}>
+          {title}
+        </div>
+      )}
       {entries.length === 0 ? (
-        <div style={{ fontSize: sizes.label, opacity: 0.4 }}>nothing yet</div>
+        <div style={{ fontSize: sizes.label, color: colors.muted, opacity: 0.5 }}>
+          nothing yet
+        </div>
       ) : (
         entries.map((m, i) => (
-          <div
+          <motion.div
             key={`${m.ts}-${i}`}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ ...MOTION.spring, delay: i * 0.03 }}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 8,
               fontSize: sizes.label,
+              padding: "4px 6px",
+              borderRadius: 6,
               ...numberStyle,
             }}
           >
             <span
               aria-hidden
               style={{
-                width: 6,
-                height: 6,
+                width: 8,
+                height: 8,
                 borderRadius: "50%",
                 background: FAMILY_COLOR[m.modelFamily] ?? "#737373",
+                boxShadow: `0 0 6px ${FAMILY_COLOR[m.modelFamily] ?? "#737373"}55`,
                 flexShrink: 0,
               }}
             />
-            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              <strong style={{ fontWeight: 500 }}>{m.user}</strong>
-              <span style={{ opacity: 0.5 }}> · {m.machine}</span>
-              <span style={{ opacity: 0.5 }}> · {m.modelFamily}</span>
+            <span
+              style={{
+                flex: 1,
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <strong style={{ fontWeight: 600, color: colors.fg }}>{m.user}</strong>
+              <span style={{ color: colors.muted }}> · {m.machine}</span>
+              <span style={{ color: colors.muted }}> · {m.modelFamily}</span>
             </span>
             {showCost && (
-              <span style={{ opacity: 0.7, fontWeight: 500 }}>
+              <span style={{ color: colors.muted, fontWeight: 500 }}>
                 {formatCurrency(m.costUsd, "USD", locale, 3)}
               </span>
             )}
-            <span style={{ opacity: 0.4, width: 70, textAlign: "right" }}>
+            <span
+              style={{
+                color: colors.muted,
+                opacity: 0.7,
+                width: 70,
+                textAlign: "right",
+              }}
+            >
               {formatRelativeTime(m.ts, locale)}
             </span>
-          </div>
+          </motion.div>
         ))
       )}
-      <span style={{ fontSize: "0.625rem", opacity: 0.4 }}>
+      <span
+        style={{
+          fontSize: "0.625rem",
+          color: colors.muted,
+          opacity: 0.5,
+          marginTop: 4,
+        }}
+      >
         {formatNumber(entries.length, "full", locale)} of last {limit}
       </span>
     </div>

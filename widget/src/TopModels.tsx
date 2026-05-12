@@ -1,19 +1,37 @@
-import { TopUsers, type TopUsersProps } from "./TopUsers";
+import { Leaderboard } from "./TopUsers";
 import { useLeaderboard } from "./hooks";
+import type { TopUsersProps } from "./TopUsers";
 
 export type TopModelsProps = Omit<TopUsersProps, "title"> & { title?: string };
 
 /**
- * Companion to TopUsers but grouped by model family. Visually identical
- * layout so dashboards composed of multiple Top* components stay
- * coherent.
+ * Top model families ranked by the picked metric. Visually identical
+ * to TopUsers — same Leaderboard renderer — but fed from the
+ * `by=model_family` leaderboard endpoint.
  */
-export function TopModels(props: TopModelsProps) {
-  const { data } = useLeaderboard({ by: "model_family", limit: props.limit ?? 5 });
-  // Reuse TopUsers' rendering by injecting the data via a custom hook
-  // surface; simplest path is to clone its layout, but keeping a single
-  // bar-list renderer means using TopUsers's data fetcher. Trade-off:
-  // we get the families list with one extra fetch. Acceptable for v0.2.
-  void data;
-  return <TopUsers {...props} title={props.title ?? "Top model families"} />;
+export function TopModels({
+  limit = 5,
+  metric = "costUsd",
+  size = "md",
+  theme = "auto",
+  density = "normal",
+  title = "Top model families",
+  locale,
+  containerStyle,
+  className,
+}: TopModelsProps) {
+  const { data } = useLeaderboard({ by: "model_family", limit });
+  return (
+    <Leaderboard
+      entries={data?.entries ?? []}
+      metric={metric}
+      size={size}
+      theme={theme}
+      density={density}
+      title={title}
+      locale={locale}
+      containerStyle={containerStyle}
+      className={className}
+    />
+  );
 }
