@@ -41,13 +41,13 @@ async function cmdInit() {
   const cfg = loadConfig();
   if (cfg.db.kind === "sqlite") ensureSqliteDir(cfg.db.url);
   const storage = openStorage(cfg.db);
-  const issued = bootstrapAdmin(storage);
+  const issued = await bootstrapAdmin(storage);
   if (!issued) {
     console.log("Database already initialized — no new admin token issued.");
     console.log(`DB: ${cfg.db.kind} → ${cfg.db.url}`);
     console.log("Use the existing admin token, or rotate via /admin/tokens.");
   }
-  storage.close();
+  await storage.close();
 }
 
 function cmdDoctor() {

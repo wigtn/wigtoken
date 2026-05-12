@@ -40,10 +40,10 @@ export function buildApp(deps: ServerDeps) {
   app.use(
     "*",
     cors({
-      origin: (origin) => {
+      origin: async (origin) => {
         if (!origin) return null;
         if (allowedOrigins.includes(origin)) return origin;
-        if (embedOrigins.isAllowed(origin)) return origin;
+        if (await embedOrigins.isAllowed(origin)) return origin;
         return null;
       },
       allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
@@ -54,21 +54,23 @@ export function buildApp(deps: ServerDeps) {
   // ───── Public ─────
   app.get("/health", (c) => c.text("ok"));
 
-  app.get("/api/usage/totals", (c) =>
-    c.json({ totals: store.getTotals(), timestamp: Date.now() })
+  app.get("/api/usage/totals", async (c) =>
+    c.json({ totals: await store.getTotals(), timestamp: Date.now() })
   );
 
   // Prometheus exposition. Labels are bounded by the regex on machine
   // (^[\w.\-]+$) and the small set of model families, so explicit
   // escaping isn't strictly necessary — but cheap to do anyway.
-  app.get("/metrics", (c) => {
-    const tokens = store.tokenBreakdown();
-    const cost = store.costBreakdown();
+  app.get("/metrics", async (c) => {
+    const [tokensRows, cost] = await Promise.all([
+      store.tokenBreakdown(),
+      store.costBreakdown(),
+    ]);
     const lines: string[] = [];
 
     lines.push("# HELP wigtn_tokens_total Total tokens processed by kind");
     lines.push("# TYPE wigtn_tokens_total counter");
-    for (const r of tokens) {
+    for (const r of tokensRows) {
       lines.push(
         `wigtn_tokens_total{user=${q(r.user)},machine=${q(r.machine)},model=${q(r.model)},model_family=${q(r.modelFamily)},kind=${q(r.kind)}} ${r.tokens}`
       );
@@ -105,19 +107,21 @@ export function buildApp(deps: ServerDeps) {
     });
   });
 
-  app.get("/api/usage/breakdown", (c) => {
+  app.get("/api/usage/breakdown", async (c) => {
+    const [tokensRows, cost] = await Promise.all([
+      store.tokenBreakdown(),
+      store.costBreakdown(),
+    ]);
     return c.json({
-      tokens: store.tokenBreakdown(),
-      cost: store.costBreakdown(),
+      tokens: tokensRows,
+      cost,
       timestamp: Date.now(),
     });
   });
 
   // CSV export — operator-facing, no auth in v1 (same as /breakdown).
-  // Columns: user, machine, model_family, messages, costUsd,
-  // weightedInputEq.
-  app.get("/api/usage/breakdown.csv", (c) => {
-    const rows = store.costBreakdown();
+  app.get("/api/usage/breakdown.csv", async (c) => {
+    const rows = await store.costBreakdown();
     const header = "user,machine,model_family,messages,cost_usd,weighted_input_eq";
     const body = rows
       .map(
@@ -132,11 +136,11 @@ export function buildApp(deps: ServerDeps) {
   });
 
   // Time-bucketed series for line charts. Defaults: last 7d, 1h step.
-  app.get("/api/usage/timeseries", (c) => {
+  app.get("/api/usage/timeseries", async (c) => {
     const now = Date.now();
     const fromMs = Number(c.req.query("from")) || now - 7 * 24 * 60 * 60 * 1000;
     const toMs = Number(c.req.query("to")) || now;
-    const stepMs = Number(c.req.query("step")) || 60 * 60 * 1000; // 1h
+    const stepMs = Number(c.req.query("step")) || 60 * 60 * 1000;
     if (stepMs < 60_000) {
       return c.json({ error: "step must be >= 60000 (1 minute)" }, 400);
     }
@@ -144,12 +148,12 @@ export function buildApp(deps: ServerDeps) {
       from: fromMs,
       to: toMs,
       step: stepMs,
-      buckets: store.timeseries(fromMs, toMs, stepMs),
+      buckets: await store.timeseries(fromMs, toMs, stepMs),
     });
   });
 
   // Top-N leaderboard by user / machine / model_family.
-  app.get("/api/usage/leaderboard", (c) => {
+  app.get("/api/usage/leaderboard", async (c) => {
     const by = (c.req.query("by") ?? "user") as
       | "user"
       | "machine"
@@ -158,28 +162,28 @@ export function buildApp(deps: ServerDeps) {
       return c.json({ error: "by must be user/machine/model_family" }, 400);
     }
     const limit = Math.min(Number(c.req.query("limit")) || 20, 100);
-    return c.json({ by, entries: store.leaderboard(by, limit) });
+    return c.json({ by, entries: await store.leaderboard(by, limit) });
   });
 
   // Per-user detail.
-  app.get("/api/usage/users/:name", (c) => {
+  app.get("/api/usage/users/:name", async (c) => {
     const name = c.req.param("name");
-    return c.json(store.userDetail(name));
+    return c.json(await store.userDetail(name));
   });
 
   // Recent messages for activity feed / sessions placeholder view.
-  app.get("/api/usage/recent", (c) => {
+  app.get("/api/usage/recent", async (c) => {
     const limit = Math.min(Number(c.req.query("limit")) || 50, 500);
-    return c.json({ entries: store.recentMessages(limit) });
+    return c.json({ entries: await store.recentMessages(limit) });
   });
 
   app.get("/api/usage/stream", (c) =>
     streamSSE(c, async (stream) => {
-      const send = () =>
+      const send = async () =>
         stream.writeSSE({
           event: "totals",
           data: JSON.stringify({
-            totals: store.getTotals(),
+            totals: await store.getTotals(),
             timestamp: Date.now(),
           }),
         });
@@ -202,12 +206,6 @@ export function buildApp(deps: ServerDeps) {
   );
 
   // ───── Auth middleware ─────
-  /**
-   * Resolve the bearer token, enforce scope, and rate-limit per token.
-   * Admin scope implicitly covers any other scope. Tokens come from the
-   * Authorization header by default; embed routes also accept ?token=
-   * because EventSource can't set custom headers.
-   */
   const requireScope =
     (...required: Scope[]) =>
     async (c: Context, next: Next) => {
@@ -221,10 +219,9 @@ export function buildApp(deps: ServerDeps) {
       if (!plain) {
         return c.json({ error: "unauthorized" }, 401);
       }
-      // Already validated `plain` above.
-      const row = tokens.resolve(plain);
+      const row = await tokens.resolve(plain);
       if (!row) {
-        audit.record({
+        await audit.record({
           ts: Date.now(),
           tokenId: null,
           action: "auth_failed",
@@ -252,21 +249,17 @@ export function buildApp(deps: ServerDeps) {
     };
 
   // ───── Embed-scope endpoints ─────
-  // CORS preflight already filters by origin (env list + embed_origins).
-  // These add token-level enforcement so a leaked snippet still can't
-  // be hot-linked from an un-registered domain. EventSource passes the
-  // token via ?token= since it can't set custom headers.
-  app.get("/embed/totals", requireScope("embed"), (c) =>
-    c.json({ totals: store.getTotals(), timestamp: Date.now() })
+  app.get("/embed/totals", requireScope("embed"), async (c) =>
+    c.json({ totals: await store.getTotals(), timestamp: Date.now() })
   );
 
   app.get("/embed/stream", requireScope("embed"), (c) =>
     streamSSE(c, async (stream) => {
-      const send = () =>
+      const send = async () =>
         stream.writeSSE({
           event: "totals",
           data: JSON.stringify({
-            totals: store.getTotals(),
+            totals: await store.getTotals(),
             timestamp: Date.now(),
           }),
         });
@@ -289,6 +282,10 @@ export function buildApp(deps: ServerDeps) {
   );
 
   // ───── Ingest ─────
+  // Goes through the raw sync sqlite Store because better-sqlite3
+  // transactions are synchronous (drizzle/better-sqlite3 likewise).
+  // Non-sqlite backends will get their own ingest path when those
+  // drivers land — for now openStorage() throws at startup for them.
   app.post("/api/ingest/messages", requireScope("ingest"), async (c) => {
     const token = c.get("token");
     let body: unknown;
@@ -299,7 +296,7 @@ export function buildApp(deps: ServerDeps) {
     }
     const result = validateIngestPayload(body);
     if (!result.ok) {
-      audit.record({
+      await audit.record({
         ts: Date.now(),
         tokenId: token.id,
         action: "ingest_rejected",
@@ -310,10 +307,20 @@ export function buildApp(deps: ServerDeps) {
       return c.json({ error: result.reason }, result.status as 400 | 413);
     }
 
-    const summary = applyIngestPayload(result.payload, store, token.user);
+    if (!storage.raw) {
+      return c.json(
+        { error: "ingest not supported on this backend yet" },
+        503
+      );
+    }
+    const summary = applyIngestPayload(
+      result.payload,
+      storage.raw.store,
+      token.user
+    );
     if (summary.applied > 0) bus.emit(EVENT_UPDATED);
 
-    audit.record({
+    await audit.record({
       ts: Date.now(),
       tokenId: token.id,
       action: "ingest",
@@ -328,8 +335,8 @@ export function buildApp(deps: ServerDeps) {
   });
 
   // ───── Admin: token management ─────
-  app.get("/api/admin/tokens", requireScope("admin"), (c) =>
-    c.json({ tokens: tokens.list() })
+  app.get("/api/admin/tokens", requireScope("admin"), async (c) =>
+    c.json({ tokens: await tokens.list() })
   );
 
   app.post("/api/admin/tokens", requireScope("admin"), async (c) => {
@@ -346,13 +353,13 @@ export function buildApp(deps: ServerDeps) {
     if (!scope || !["ingest", "read", "admin", "embed"].includes(scope)) {
       return c.json({ error: "scope must be ingest/read/admin/embed" }, 400);
     }
-    const issued = tokens.issue({
+    const issued = await tokens.issue({
       user: body.user,
       scope,
       label: typeof body.label === "string" ? body.label : undefined,
       expiresAt: typeof body.expiresAt === "number" ? body.expiresAt : undefined,
     });
-    audit.record({
+    await audit.record({
       ts: Date.now(),
       tokenId: issued.id,
       action: "token_issued",
@@ -363,13 +370,13 @@ export function buildApp(deps: ServerDeps) {
     return c.json(issued);
   });
 
-  app.delete("/api/admin/tokens/:id", requireScope("admin"), (c) => {
+  app.delete("/api/admin/tokens/:id", requireScope("admin"), async (c) => {
     const id = Number(c.req.param("id"));
     if (!Number.isFinite(id)) return c.json({ error: "bad id" }, 400);
     const token = c.get("token");
-    const revoked = tokens.revoke(id);
+    const revoked = await tokens.revoke(id);
     if (revoked) {
-      audit.record({
+      await audit.record({
         ts: Date.now(),
         tokenId: id,
         action: "token_revoked",
@@ -381,17 +388,17 @@ export function buildApp(deps: ServerDeps) {
     return c.json({ revoked });
   });
 
-  app.get("/api/admin/audit", requireScope("admin"), (c) => {
+  app.get("/api/admin/audit", requireScope("admin"), async (c) => {
     const since = Number(c.req.query("since")) || undefined;
     const limit = Number(c.req.query("limit")) || undefined;
     return c.json({
-      entries: audit.list({ sinceMs: since, limit }),
+      entries: await audit.list({ sinceMs: since, limit }),
     });
   });
 
   // ───── Admin: embed origin whitelist + embed-scope tokens ─────
-  app.get("/api/admin/embed-origins", requireScope("admin"), (c) =>
-    c.json({ origins: embedOrigins.list() })
+  app.get("/api/admin/embed-origins", requireScope("admin"), async (c) =>
+    c.json({ origins: await embedOrigins.list() })
   );
 
   app.post("/api/admin/embed-origins", requireScope("admin"), async (c) => {
@@ -408,16 +415,16 @@ export function buildApp(deps: ServerDeps) {
         400
       );
     }
-    if (embedOrigins.isAllowed(origin)) {
+    if (await embedOrigins.isAllowed(origin)) {
       return c.json({ error: "origin already exists" }, 409);
     }
     const tokenRow = c.get("token");
-    const created = embedOrigins.add(
+    const created = await embedOrigins.add(
       origin,
       typeof body.label === "string" ? body.label : null,
       tokenRow?.id ?? null
     );
-    audit.record({
+    await audit.record({
       ts: Date.now(),
       tokenId: tokenRow?.id ?? null,
       action: "embed_origin_added",
@@ -431,13 +438,13 @@ export function buildApp(deps: ServerDeps) {
   app.delete(
     "/api/admin/embed-origins/:id",
     requireScope("admin"),
-    (c) => {
+    async (c) => {
       const id = Number(c.req.param("id"));
       if (!Number.isFinite(id)) return c.json({ error: "bad id" }, 400);
       const tokenRow = c.get("token");
-      const removed = embedOrigins.remove(id);
+      const removed = await embedOrigins.remove(id);
       if (removed) {
-        audit.record({
+        await audit.record({
           ts: Date.now(),
           tokenId: tokenRow?.id ?? null,
           action: "embed_origin_removed",
@@ -451,15 +458,12 @@ export function buildApp(deps: ServerDeps) {
   );
 
   // ───── Setup status / wizard endpoints ─────
-  // Public read so the SPA boot can decide whether to redirect to
-  // /setup. Completion requires admin scope (only an admin marks setup
-  // done).
-  app.get("/api/setup/status", (c) =>
+  app.get("/api/setup/status", async (c) =>
     c.json({
-      complete: settings.getBool("setup.complete"),
-      scenario: settings.get("setup.scenario"),
-      infra: settings.get("setup.infra"),
-      completedAt: Number(settings.get("setup.completedAt")) || null,
+      complete: await settings.getBool("setup.complete"),
+      scenario: await settings.get("setup.scenario"),
+      infra: await settings.get("setup.infra"),
+      completedAt: Number(await settings.get("setup.completedAt")) || null,
       headless,
       db: {
         kind: storage.kind,
@@ -476,12 +480,12 @@ export function buildApp(deps: ServerDeps) {
     }
     const scenario = typeof body?.scenario === "string" ? body.scenario : null;
     const infra = typeof body?.infra === "string" ? body.infra : null;
-    if (scenario) settings.set("setup.scenario", scenario);
-    if (infra) settings.set("setup.infra", infra);
-    settings.setBool("setup.complete", true);
-    settings.set("setup.completedAt", String(Date.now()));
+    if (scenario) await settings.set("setup.scenario", scenario);
+    if (infra) await settings.set("setup.infra", infra);
+    await settings.setBool("setup.complete", true);
+    await settings.set("setup.completedAt", String(Date.now()));
     const tokenRow = c.get("token");
-    audit.record({
+    await audit.record({
       ts: Date.now(),
       tokenId: tokenRow?.id ?? null,
       action: "setup_completed",
@@ -492,19 +496,15 @@ export function buildApp(deps: ServerDeps) {
     return c.json({ ok: true });
   });
 
-  app.post("/api/setup/reset", requireScope("admin"), (c) => {
-    settings.setBool("setup.complete", false);
-    settings.set("setup.scenario", "");
-    settings.set("setup.infra", "");
-    settings.set("setup.completedAt", "");
+  app.post("/api/setup/reset", requireScope("admin"), async (c) => {
+    await settings.setBool("setup.complete", false);
+    await settings.set("setup.scenario", "");
+    await settings.set("setup.infra", "");
+    await settings.set("setup.completedAt", "");
     return c.json({ ok: true });
   });
 
   // ───── Operator dashboard SPA ─────
-  // Skipped in headless mode (HEADLESS=true). Otherwise serve the
-  // Vite-built dashboard from ../public when it exists; SPA fallback
-  // forwards unmatched HTML GETs to index.html so /users/:name etc.
-  // deep-links work.
   if (headless) {
     app.get("/", (c) =>
       c.text(
@@ -519,15 +519,12 @@ export function buildApp(deps: ServerDeps) {
     app.get("/", serveStatic({ path: "./public/index.html" }));
     app.get("/favicon.ico", serveStatic({ path: "./public/favicon.ico" }));
     app.get("*", async (c, next) => {
-      // Only swallow GETs that look like SPA routes — leave the API
-      // handlers alone above.
       if (c.req.method !== "GET") return next();
       const accept = c.req.header("accept") ?? "";
       if (!accept.includes("text/html")) return next();
       return serveStatic({ path: "./public/index.html" })(c, next);
     });
   } else {
-    // Helpful message when running before `web/` has been built.
     app.get("/", (c) =>
       c.text(
         "wigtoken server is running.\n" +

@@ -20,10 +20,10 @@ export type { Storage } from "./storage.ts";
  * once. Idempotent — does nothing on subsequent runs. Returned value
  * is the plaintext token if a fresh one was issued, otherwise null.
  */
-export function bootstrapAdmin(storage: Storage): string | null {
+export async function bootstrapAdmin(storage: Storage): Promise<string | null> {
   const { tokens, audit } = storage;
-  if (!tokens.needsBootstrapAdmin()) return null;
-  const issued = tokens.issue({
+  if (!(await tokens.needsBootstrapAdmin())) return null;
+  const issued = await tokens.issue({
     user: "admin",
     scope: "admin",
     label: "bootstrap",
@@ -38,7 +38,7 @@ export function bootstrapAdmin(storage: Storage): string | null {
   console.log("Use it from the /setup wizard or POST /api/admin/tokens.");
   console.log("─".repeat(60));
   console.log("");
-  audit.record({
+  await audit.record({
     ts: Date.now(),
     tokenId: issued.id,
     action: "token_issued",
@@ -56,8 +56,17 @@ export function bootstrapAdmin(storage: Storage): string | null {
  */
 export async function startDaemon(cfg: AppConfig = loadConfig()) {
   const storage = openStorage(cfg.db);
-  const { store } = storage;
-  bootstrapAdmin(storage);
+  await bootstrapAdmin(storage);
+
+  if (!storage.raw) {
+    // PG / MySQL backends would need their own scanner / ingest path;
+    // not yet implemented.
+    throw new Error(
+      `wigtoken: daemon mode requires SQLite for the moment. ` +
+        `Run with DB_URL pointing at a sqlite file.`
+    );
+  }
+  const rawStore = storage.raw.store;
 
   const rateLimiter = new RateLimiter(100, 100 / 60);
   const rateLimiterPrune = setInterval(
@@ -74,7 +83,7 @@ export async function startDaemon(cfg: AppConfig = loadConfig()) {
     if (!path.endsWith(".jsonl")) return;
     const labels = deriveLabels(path, cfg.projectsDir, watcherDefaults);
     try {
-      const result = processFile(path, store, labels);
+      const result = processFile(path, rawStore, labels);
       if (result.newMessages.length > 0) {
         console.log(
           `[${label}] (${labels.user}/${labels.machine}) ${path} → +${result.newMessages.length} msgs (+${result.bytesAdvanced} bytes)`
@@ -143,7 +152,7 @@ export async function startDaemon(cfg: AppConfig = loadConfig()) {
   let scanTimer: NodeJS.Timeout | null = null;
   await new Promise<void>((resolveReady) => {
     watcher.on("ready", () => {
-      console.log("Initial scan complete. Totals:", store.getTotals());
+      console.log("Initial scan complete. Totals:", rawStore.getTotals());
       console.log(`Backup walk: every ${cfg.scanIntervalMs}ms`);
       scanTimer = setInterval(() => {
         backupScan().catch(() => {});
@@ -167,7 +176,7 @@ export async function startDaemon(cfg: AppConfig = loadConfig()) {
       if (scanTimer) clearInterval(scanTimer);
       clearInterval(rateLimiterPrune);
       await watcher.close();
-      storage.close();
+      await storage.close();
     },
   };
 }
