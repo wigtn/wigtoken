@@ -2,9 +2,8 @@ import { Hono } from "hono";
 import type { Context, Next } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
-import { serveStatic } from "@hono/node-server/serve-static";
-import { existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Storage } from "./storage.ts";
 import type { Scope, TokenRow } from "./tokens.ts";
@@ -515,14 +514,58 @@ export function buildApp(deps: ServerDeps) {
       )
     );
   } else if (existsSync(PUBLIC_DIR)) {
-    app.use("/assets/*", serveStatic({ root: "./public" }));
-    app.get("/", serveStatic({ path: "./public/index.html" }));
-    app.get("/favicon.ico", serveStatic({ path: "./public/favicon.ico" }));
+    // Static SPA served from the absolute PUBLIC_DIR (resolved at
+    // module load from import.meta.url so it works whether the binary
+    // is invoked from npm-install-g, npx, a Docker image, or `tsx
+    // src/index.ts` for dev. cwd-relative paths break with
+    // `npm install -g`.
+    const serveFile = (absPath: string): Response | null => {
+      try {
+        const st = statSync(absPath);
+        if (!st.isFile()) return null;
+        const data = readFileSync(absPath);
+        return new Response(new Uint8Array(data), {
+          status: 200,
+          headers: {
+            "Content-Type": contentTypeFor(absPath),
+            "Cache-Control": absPath.endsWith("index.html")
+              ? "no-cache"
+              : "public, max-age=31536000, immutable",
+          },
+        });
+      } catch {
+        return null;
+      }
+    };
+
+    const tryServe = (relPath: string) => {
+      // Defence against path traversal — resolve normalised, ensure
+      // it still lives under PUBLIC_DIR.
+      const abs = normalize(join(PUBLIC_DIR, relPath));
+      if (!abs.startsWith(PUBLIC_DIR)) return null;
+      return serveFile(abs);
+    };
+
+    app.get("/", (c) => {
+      const resp = serveFile(join(PUBLIC_DIR, "index.html"));
+      return resp ?? c.text("SPA index missing", 500);
+    });
+    app.get("/favicon.ico", (c) => {
+      const resp = serveFile(join(PUBLIC_DIR, "favicon.ico"));
+      return resp ?? c.notFound();
+    });
+    app.get("/assets/*", (c) => {
+      // path like /assets/index-abc.js → relative public/assets/index-abc.js
+      const url = new URL(c.req.url);
+      const resp = tryServe(url.pathname.slice(1));
+      return resp ?? c.notFound();
+    });
     app.get("*", async (c, next) => {
       if (c.req.method !== "GET") return next();
       const accept = c.req.header("accept") ?? "";
       if (!accept.includes("text/html")) return next();
-      return serveStatic({ path: "./public/index.html" })(c, next);
+      const resp = serveFile(join(PUBLIC_DIR, "index.html"));
+      return resp ?? c.text("SPA index missing", 500);
     });
   } else {
     app.get("/", (c) =>
@@ -556,4 +599,27 @@ function clientIp(c: Context): string | null {
     c.req.header("x-real-ip") ??
     null
   );
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".map": "application/json; charset=utf-8",
+};
+
+function contentTypeFor(path: string): string {
+  const ext = path.slice(path.lastIndexOf("."));
+  return CONTENT_TYPES[ext] ?? "application/octet-stream";
 }
